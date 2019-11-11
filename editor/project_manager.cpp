@@ -1828,6 +1828,9 @@ void ProjectManager::_notification(int p_what) {
 
 void ProjectManager::_dim_window() {
 
+	// disable dimming
+	return;
+
 	// This method must be called before calling `get_tree()->quit()`.
 	// Otherwise, its effect won't be visible
 
