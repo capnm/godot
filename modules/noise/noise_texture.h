@@ -31,7 +31,7 @@
 #ifndef NOISE_TEXTURE_H
 #define NOISE_TEXTURE_H
 
-#include "open_simplex_noise.h"
+#include "noise.h"
 
 #include "core/image.h"
 #include "core/reference.h"
@@ -54,8 +54,9 @@ private:
 	RID texture;
 	uint32_t flags;
 
-	Ref<OpenSimplexNoise> noise;
+	Ref<Noise> noise;
 	Vector2i size;
+	bool invert;
 	bool seamless;
 	bool as_normalmap;
 	float bump_strength;
@@ -73,11 +74,14 @@ protected:
 	virtual void _validate_property(PropertyInfo &property) const;
 
 public:
-	void set_noise(Ref<OpenSimplexNoise> p_noise);
-	Ref<OpenSimplexNoise> get_noise();
+	void set_noise(Ref<Noise> p_noise);
+	Ref<Noise> get_noise();
 
 	void set_width(int p_width);
 	void set_height(int p_height);
+
+	void set_invert(bool p_invert);
+	bool get_invert() const;
 
 	void set_seamless(bool p_seamless);
 	bool get_seamless();
