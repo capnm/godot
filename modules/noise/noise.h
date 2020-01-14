@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  register_types.h                                                     */
+/*  noise.h                                                              */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,10 +28,66 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef OPENSIMPLEX_REGISTER_TYPES_H
-#define OPENSIMPLEX_REGISTER_TYPES_H
+#ifndef NOISE_H
+#define NOISE_H
 
-void register_opensimplex_types();
-void unregister_opensimplex_types();
+#include "core/image.h"
 
-#endif // OPENSIMPLEX_REGISTER_TYPES_H
+class Noise : public Resource {
+	GDCLASS(Noise, Resource);
+
+public:
+	// Virtual destructor so we can delete any Noise derived object when referenced as a Noise*.
+	virtual ~Noise() {}
+
+	virtual Ref<Image> get_image(int p_width, int p_height, bool p_invert = false) = 0;
+	virtual Ref<Image> get_seamless_image(int p_width, int p_height, bool p_invert = false);
+
+private:
+	// Helper struct for get_seamless_image(). See comments in .cpp for usage.
+	struct img_buff {
+		uint32_t *img;
+		int width; // Array dimensions & default modulo for image
+		int height;
+		int offset_x; // Offset index location on image (wrapped by specified modulo)
+		int offset_y;
+		int alt_width; // Alternate module for image
+		int alt_height;
+
+		enum ALT_MODULO {
+			DEFAULT = 0,
+			ALT_X,
+			ALT_Y,
+			ALT_XY
+		};
+
+		// Multi-dimensional array indexer (e.g. img[x][y]) that supports multiple modulos
+		uint32_t &operator()(int x, int y, ALT_MODULO mode = DEFAULT) {
+			switch (mode) {
+				case ALT_XY:
+					return img[(x + offset_x) % alt_width + ((y + offset_y) % alt_height) * width];
+				case ALT_X:
+					return img[(x + offset_x) % alt_width + ((y + offset_y) % height) * width];
+				case ALT_Y:
+					return img[(x + offset_x) % width + ((y + offset_y) % alt_height) * width];
+				default:
+					return img[(x + offset_x) % width + ((y + offset_y) % height) * width];
+			}
+		}
+	};
+
+	union l2c {
+		uint32_t l;
+		uint8_t c[4];
+		struct {
+			uint8_t r;
+			uint8_t g;
+			uint8_t b;
+			uint8_t a;
+		};
+	};
+
+	uint32_t alpha_blend(uint32_t p_bg, uint32_t p_fg, int p_alpha = -1);
+};
+
+#endif // NOISE_H
