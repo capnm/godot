@@ -374,6 +374,33 @@ static bool _check_one_way_collision_by_motion(const Vector2 &p_motion, const Ve
 	return total_motion.normalized().dot(valid_dir) >= 0;
 }
 
+static Vector2 _get_collider_velocity(const CollisionObject2DSW *col_obj) {
+	if (col_obj->get_type() == CollisionObject2DSW::TYPE_BODY) {
+		const Body2DSW *b = static_cast<const Body2DSW *>(col_obj);
+		if (b->get_mode() == Physics2DServer::BODY_MODE_KINEMATIC || b->get_mode() == Physics2DServer::BODY_MODE_RIGID) {
+			return b->get_linear_velocity();
+		}
+	}
+
+	return Vector2();
+}
+
+static Vector2 _get_valid_dir(const CollisionObject2DSW *col_obj, int shape_idx, const Transform2D &col_obj_shape_xform) {
+	if (col_obj->is_shape_set_as_one_way_collision(shape_idx)) {
+		return col_obj_shape_xform.get_axis(1).normalized();
+	}
+	return Vector2();
+}
+
+static real_t _get_valid_depth(const CollisionObject2DSW *col_obj, int shape_idx, const Vector2 &valid_dir, real_t p_margin, const Vector2 &p_motion) {
+	if (valid_dir == Vector2() || !_check_one_way_collision_by_motion(p_motion, valid_dir, col_obj))
+		return 0;
+
+	real_t valid_depth = 0;
+	valid_depth = col_obj->get_shape_one_way_collision_margin(shape_idx);
+	return MAX(valid_depth, p_margin); //user specified, but never less than actual margin or it won't work
+}
+
 struct _RestCallbackData2D {
 
 	const CollisionObject2DSW *object;
@@ -395,9 +422,14 @@ static void _rest_cbk_result(const Vector2 &p_point_A, const Vector2 &p_point_B,
 	_RestCallbackData2D *rd = (_RestCallbackData2D *)p_userdata;
 
 	if (rd->valid_dir != Vector2()) {
-		if (p_point_A.distance_squared_to(p_point_B) > rd->valid_depth * rd->valid_depth)
+		Vector2 rel_dir = p_point_A - p_point_B;
+
+		// Don't collide if the length of the intersecting vector is greater than the valid depth
+		if (rel_dir.length() > rd->valid_depth)
 			return;
-		if (rd->valid_dir.dot((p_point_A - p_point_B).normalized()) < Math_PI * 0.25)
+
+		// Don't collide if the intersecting vector is not within 90 degrees of the valid direction
+		if (rd->valid_dir.dot(rel_dir.normalized()) <= 0)
 			return;
 	}
 
@@ -803,42 +835,17 @@ bool Space2DSW::test_body_motion(Body2DSW *p_body, const Transform2D &p_from, co
 					}
 
 					Transform2D col_obj_shape_xform = col_obj->get_transform() * col_obj->get_shape_transform(shape_idx);
-
-					if (col_obj->is_shape_set_as_one_way_collision(shape_idx)) {
-
-						cbk.valid_dir = col_obj_shape_xform.get_axis(1).normalized();
-
-						// Don't try to unstick if moving doesn't collide with one way collision object
-						if (!_check_one_way_collision_by_motion(p_motion, cbk.valid_dir, col_obj))
-							continue;
-
-						float owc_margin = col_obj->get_shape_one_way_collision_margin(shape_idx);
-						cbk.valid_depth = MAX(owc_margin, p_margin); //user specified, but never less than actual margin or it won't work
-						cbk.invalid_by_dir = 0;
-
-						if (col_obj->get_type() == CollisionObject2DSW::TYPE_BODY) {
-							const Body2DSW *b = static_cast<const Body2DSW *>(col_obj);
-							if (b->get_mode() == Physics2DServer::BODY_MODE_KINEMATIC || b->get_mode() == Physics2DServer::BODY_MODE_RIGID) {
-								//fix for moving platforms (kinematic and dynamic), margin is increased by how much it moved in the given direction
-								Vector2 lv = b->get_linear_velocity();
-								//compute displacement from linear velocity
-								Vector2 motion = lv * Physics2DDirectBodyStateSW::singleton->step;
-								float motion_len = motion.length();
-								motion.normalize();
-								cbk.valid_depth += motion_len * MAX(motion.dot(-cbk.valid_dir), 0.0);
-							}
-						}
-					} else {
-						cbk.valid_dir = Vector2();
-						cbk.valid_depth = 0;
-						cbk.invalid_by_dir = 0;
-					}
+					cbk.invalid_by_dir = 0;
+					cbk.valid_dir = _get_valid_dir(col_obj, shape_idx, col_obj_shape_xform);
+					cbk.valid_depth = _get_valid_depth(col_obj, shape_idx, cbk.valid_dir, p_margin, p_motion);
 
 					int current_passed = cbk.passed; //save how many points passed collision
 					bool did_collide = false;
 
 					Shape2DSW *against_shape = col_obj->get_shape(shape_idx);
-					if (CollisionSolver2DSW::solve(body_shape, body_shape_xform, Vector2(), against_shape, col_obj_shape_xform, Vector2(), cbkres, cbkptr, NULL, separation_margin)) {
+
+					// Test collision when both bodies are at rest to determine unstick motions
+					if (CollisionSolver2DSW::solve(body_shape, body_shape_xform, Vector2(), against_shape, col_obj_shape_xform, Vector2(), cbkres, cbkptr, NULL, separation_margin, 0, cbk.valid_dir)) {
 						did_collide = cbk.passed > current_passed; //more passed, so collision actually existed
 					}
 
@@ -866,7 +873,6 @@ bool Space2DSW::test_body_motion(Body2DSW *p_body, const Transform2D &p_from, co
 			Vector2 recover_motion;
 
 			for (int i = 0; i < cbk.amount; i++) {
-
 				Vector2 a = sr[i * 2 + 0];
 				Vector2 b = sr[i * 2 + 1];
 				recover_motion += (b - a) * 0.4;
@@ -944,13 +950,16 @@ bool Space2DSW::test_body_motion(Body2DSW *p_body, const Transform2D &p_from, co
 				}
 
 				Transform2D col_obj_shape_xform = col_obj->get_transform() * col_obj->get_shape_transform(col_shape_idx);
-				//test initial overlap, does it collide if going all the way?
-				if (!CollisionSolver2DSW::solve(body_shape, body_shape_xform, p_motion, against_shape, col_obj_shape_xform, Vector2(), NULL, NULL, NULL, 0)) {
+				Vector2 valid_dir = _get_valid_dir(col_obj, col_shape_idx, col_obj_shape_xform);
+				Vector2 col_velocity = _get_collider_velocity(col_obj);
+
+				//test initial overlap, does it collide if both bodies are going all the way?
+				if (!CollisionSolver2DSW::solve(body_shape, body_shape_xform, p_motion, against_shape, col_obj_shape_xform, col_velocity, NULL, NULL, NULL, 0, 0, valid_dir)) {
 					continue;
 				}
 
 				//test initial overlap
-				if (CollisionSolver2DSW::solve(body_shape, body_shape_xform, Vector2(), against_shape, col_obj_shape_xform, Vector2(), NULL, NULL, NULL, 0)) {
+				if (CollisionSolver2DSW::solve(body_shape, body_shape_xform, Vector2(), against_shape, col_obj_shape_xform, Vector2(), NULL, NULL, NULL, 0, 0, valid_dir)) {
 
 					if (col_obj->is_shape_set_as_one_way_collision(col_shape_idx)) {
 						continue;
@@ -970,7 +979,17 @@ bool Space2DSW::test_body_motion(Body2DSW *p_body, const Transform2D &p_from, co
 					real_t ofs = (low + hi) * 0.5;
 
 					Vector2 sep = mnormal; //important optimization for this to work fast enough
-					bool collided = CollisionSolver2DSW::solve(body_shape, body_shape_xform, p_motion * ofs, against_shape, col_obj_shape_xform, Vector2(), NULL, NULL, &sep, 0);
+
+					Vector2 scaled_col_velocity = col_velocity * ofs;
+
+					// Special case for one way collision. Need to check against full
+					// motion of colliding body, so that in the next frame
+					// the body is still guaranteed to not be past the margins
+					if (col_obj->is_shape_set_as_one_way_collision(col_shape_idx)) {
+						scaled_col_velocity = col_velocity;
+					}
+
+					bool collided = CollisionSolver2DSW::solve(body_shape, body_shape_xform, p_motion * ofs, against_shape, col_obj_shape_xform, scaled_col_velocity, NULL, NULL, &sep, 0, 0, valid_dir);
 
 					if (collided) {
 
@@ -982,23 +1001,48 @@ bool Space2DSW::test_body_motion(Body2DSW *p_body, const Transform2D &p_from, co
 				}
 
 				if (col_obj->is_shape_set_as_one_way_collision(col_shape_idx)) {
-
 					Vector2 cd[2];
 					Physics2DServerSW::CollCbkData cbk;
 					cbk.max = 1;
 					cbk.amount = 0;
 					cbk.passed = 0;
 					cbk.ptr = cd;
-					cbk.valid_dir = col_obj_shape_xform.get_axis(1).normalized();
-					cbk.valid_depth = 10e20;
+					cbk.valid_dir = valid_dir;
+					cbk.valid_depth = 10e20; // Infinite depth just to check for pass-through, will adjust to within margin later
 
 					if (!_check_one_way_collision_by_motion(p_motion, cbk.valid_dir, col_obj))
 						continue;
 
 					Vector2 sep = mnormal; //important optimization for this to work fast enough
-					bool collided = CollisionSolver2DSW::solve(body_shape, body_shape_xform, p_motion * (hi + contact_max_allowed_penetration), col_obj->get_shape(col_shape_idx), col_obj_shape_xform, Vector2(), Physics2DServerSW::_shape_col_cbk, &cbk, &sep, 0, 0, cbk.valid_dir);
+
+					// Check collision with infinite depth and fully moved colliding object
+					// to get collision depth and adjust accordingly
+					bool collided = CollisionSolver2DSW::solve(body_shape, body_shape_xform, p_motion * hi, col_obj->get_shape(col_shape_idx), col_obj_shape_xform, col_velocity, Physics2DServerSW::_shape_col_cbk, &cbk, &sep, 0, 0, cbk.valid_dir);
 					if (!collided || cbk.amount == 0) {
 						continue;
+					} else {
+						Vector2 intersection = cd[0] - cd[1];
+						real_t valid_depth = _get_valid_depth(col_obj, col_shape_idx, valid_dir, p_margin, p_motion);
+
+						// Collision occurred but went past one way collision margin,
+						// see if we can adjust so that it is within margin
+						if (intersection.length() > valid_depth) {
+							Vector2 total_velocity = p_motion + col_velocity;
+							real_t normal_proj = total_velocity.normalized().dot(intersection.normalized());
+							// Get distance needed so that it is within the margin
+							real_t dist_adjustment = normal_proj != 0 ? (intersection.length() - (valid_depth / 2)) / normal_proj : 0;
+							// Get value needed to adjust hi to add distance
+							real_t hi_adjustment = total_velocity != Vector2() ? dist_adjustment / total_velocity.length() : 0;
+							real_t new_hi = hi - Math::abs(hi_adjustment);
+
+							// If new_hi is less than or equal to low, the intersection
+							// is too deep and the body is already past the margins
+							if (new_hi > low) {
+								hi = new_hi;
+							} else {
+								continue;
+							}
+						}
 					}
 				}
 
@@ -1033,10 +1077,10 @@ bool Space2DSW::test_body_motion(Body2DSW *p_body, const Transform2D &p_from, co
 	}
 
 	{
-
 		//it collided, let's get the rest info in unsafe advance
+		Vector2 unsafe_motion = p_motion * unsafe;
 		Transform2D ugt = body_transform;
-		ugt.elements[2] += p_motion * unsafe;
+		ugt.elements[2] += unsafe_motion;
 
 		_RestCallbackData2D rcd;
 		rcd.best_len = 0;
@@ -1060,7 +1104,7 @@ bool Space2DSW::test_body_motion(Body2DSW *p_body, const Transform2D &p_from, co
 				continue;
 			}
 
-			body_aabb.position += p_motion * unsafe;
+			body_aabb.position += unsafe_motion;
 
 			int amount = _cull_aabb_for_body(p_body, body_aabb);
 
@@ -1090,22 +1134,26 @@ bool Space2DSW::test_body_motion(Body2DSW *p_body, const Transform2D &p_from, co
 					continue;
 
 				Transform2D col_obj_shape_xform = col_obj->get_transform() * col_obj->get_shape_transform(shape_idx);
-
-				if (col_obj->is_shape_set_as_one_way_collision(shape_idx)) {
-					rcd.valid_dir = col_obj_shape_xform.get_axis(1).normalized();
-					rcd.valid_depth = 10e20;
-
-					if (!_check_one_way_collision_by_motion(p_motion, rcd.valid_dir, col_obj))
-						continue;
-				} else {
-					rcd.valid_dir = Vector2();
-					rcd.valid_depth = 0;
-				}
+				rcd.valid_dir = _get_valid_dir(col_obj, shape_idx, col_obj_shape_xform);
+				rcd.valid_depth = _get_valid_depth(col_obj, shape_idx, rcd.valid_dir, p_margin, p_motion);
+				Vector2 col_velocity = _get_collider_velocity(col_obj);
 
 				rcd.object = col_obj;
 				rcd.shape = shape_idx;
 				rcd.local_shape = j;
-				bool sc = CollisionSolver2DSW::solve(body_shape, body_shape_xform, Vector2(), against_shape, col_obj_shape_xform, Vector2(), _rest_cbk_result, &rcd, NULL, p_margin, 0, rcd.valid_dir);
+
+				// The current position was changed with p_motion * unsafe
+				// where unsafe was determined by scaling both p_motion and col_velocity
+				// by the same factor, so continue to use same scaling
+				Vector2 scaled_col_velocity = col_velocity * unsafe;
+
+				// Matching previous collision check where for one way collisions
+				// the full collision velocity was used
+				if (col_obj->is_shape_set_as_one_way_collision(shape_idx)) {
+					scaled_col_velocity = col_velocity;
+				}
+
+				bool sc = CollisionSolver2DSW::solve(body_shape, body_shape_xform, Vector2(), against_shape, col_obj_shape_xform, scaled_col_velocity, _rest_cbk_result, &rcd, NULL, p_margin, 0, rcd.valid_dir);
 				if (!sc)
 					continue;
 			}

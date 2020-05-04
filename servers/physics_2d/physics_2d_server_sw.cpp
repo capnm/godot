@@ -168,22 +168,17 @@ void Physics2DServerSW::_shape_col_cbk(const Vector2 &p_point_A, const Vector2 &
 		return;
 
 	if (cbk->valid_dir != Vector2()) {
-		if (p_point_A.distance_squared_to(p_point_B) > cbk->valid_depth * cbk->valid_depth) {
+		Vector2 rel_dir = p_point_A - p_point_B;
+
+		// Don't collide if the length of the intersecting vector is greater than the valid depth
+		if (rel_dir.length() > cbk->valid_depth) {
 			cbk->invalid_by_dir++;
 			return;
 		}
-		Vector2 rel_dir = (p_point_A - p_point_B).normalized();
 
-		if (cbk->valid_dir.dot(rel_dir) < Math_SQRT12) { //sqrt(2)/2.0 - 45 degrees
+		// Don't collide if the intersecting vector is not within 90 degrees of the valid direction
+		if (cbk->valid_dir.dot(rel_dir.normalized()) <= 0) {
 			cbk->invalid_by_dir++;
-
-			/*
-			print_line("A: "+p_point_A);
-			print_line("B: "+p_point_B);
-			print_line("discard too angled "+rtos(cbk->valid_dir.dot((p_point_A-p_point_B))));
-			print_line("resnorm: "+(p_point_A-p_point_B).normalized());
-			print_line("distance: "+rtos(p_point_A.distance_to(p_point_B)));
-			*/
 			return;
 		}
 	}
