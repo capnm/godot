@@ -16,6 +16,7 @@ subject to the following restrictions:
 #define BT_VECTOR3_H
 
 //#include <stdint.h>
+#include <stdio.h>
 #include "btScalar.h"
 #include "btMinMax.h"
 #include "btAlignedAllocator.h"
@@ -302,7 +303,10 @@ public:
    * x^2 + y^2 + z^2 = 1 */
 	SIMD_FORCE_INLINE btVector3& normalize()
 	{
-		btAssert(!fuzzyZero());
+		//btAssert(!fuzzyZero());
+		if (fuzzyZero()) {
+			printf("BULLET ERROR: normalize zero vector\n");
+		}
 
 #if defined(BT_USE_SSE_IN_API) && defined(BT_USE_SSE)
 		// dot product first
