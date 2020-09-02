@@ -40,6 +40,8 @@ def get_flags():
 
 def configure(env):
 
+    env.Append(CCFLAGS=["-Wno-inconsistent-missing-override", "-Wno-deprecated-copy"])
+
     ## Build type
 
     if env["target"] == "release":
