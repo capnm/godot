@@ -418,7 +418,17 @@ if selected_platform in platform_list:
         if env["warnings"] == "extra":
             # Note: enable -Wimplicit-fallthrough for Clang (already part of -Wextra for GCC)
             # once we switch to C++11 or later (necessary for our FALLTHROUGH macro).
-            env.Append(CCFLAGS=["-Wall", "-Wextra", "-Wno-unused-parameter"] + all_plus_warnings + shadow_local_warning)
+            env.Append(
+                CCFLAGS=[
+                    "-Wall",
+                    "-Wextra",
+                    "-Wno-unused-parameter",
+                    "-Wno-deprecated-copy",
+                    "-Wno-inconsistent-missing-override",
+                ]
+                + all_plus_warnings
+                + shadow_local_warning
+            )
             env.Append(CXXFLAGS=["-Wctor-dtor-privacy", "-Wnon-virtual-dtor"])
             if methods.using_gcc(env):
                 env.Append(
