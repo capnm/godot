@@ -141,6 +141,14 @@ Ref<AudioStreamPlayback> AudioStreamOGGVorbis::instance_playback() {
 	ovs->loops = 0;
 	int error;
 	ovs->ogg_stream = stb_vorbis_open_memory((const unsigned char *)data, data_len, &error, &ovs->ogg_alloc);
+	if (error != VORBIS__no_error) {
+		if (error == VORBIS_outofmem) {
+			ERR_PRINT(vformat("Ogg Vorbis: instance_playback: out of memory."));
+		} else {
+			ERR_PRINT(vformat("Ogg Vorbis: instance_playback: error %d.", error));
+			ERR_PRINT("Ogg Vorbis: see https://github.com/godotengine/godot/blob/8dffca4/thirdparty/misc/stb_vorbis.c#L363");
+		}
+	}
 	if (!ovs->ogg_stream) {
 
 		AudioServer::get_singleton()->audio_data_free(ovs->ogg_alloc.alloc_buffer);
@@ -194,17 +202,25 @@ void AudioStreamOGGVorbis::set_data(const PoolVector<uint8_t> &p_data) {
 			w.release();
 			alloc_try *= 2;
 		} else {
-
-			ERR_FAIL_COND(alloc_try == MAX_TEST_MEM);
+			if (error != VORBIS__no_error) {
+				ERR_PRINT(vformat("Ogg Vorbis: stb_vorbis_open_memory: error %d", error));
+				ERR_FAIL_MSG("Ogg Vorbis: see https://github.com/godotengine/godot/blob/8dffca4/thirdparty/misc/stb_vorbis.c#L363");
+			}
 			ERR_FAIL_COND(ogg_stream == NULL);
 
 			stb_vorbis_info info = stb_vorbis_get_info(ogg_stream);
 
 			channels = info.channels;
 			sample_rate = info.sample_rate;
-			decode_mem_size = alloc_try;
-			//does this work? (it's less mem..)
-			//decode_mem_size = ogg_alloc.alloc_buffer_length_in_bytes + info.setup_memory_required + info.temp_memory_required + info.max_frame_size;
+
+			// In the worst case, about half of the memory as would be allocated with alloc_try.
+			decode_mem_size = info.setup_memory_required + info.temp_memory_required;
+
+			print_verbose(vformat("I Ogg Vorbis: memory for import: %dkB (max. %dMB)", alloc_try / 1024,
+					MAX_TEST_MEM / (1024 * 1024)));
+			print_verbose(vformat("I Ogg Vorbis: predicted memory for playback: %dkB (setup: %d + temp: %d)",
+					(info.setup_memory_required + info.temp_memory_required) / 1024,
+					info.setup_memory_required, info.temp_memory_required));
 
 			length = stb_vorbis_stream_length_in_seconds(ogg_stream);
 			stb_vorbis_close(ogg_stream);
@@ -219,7 +235,7 @@ void AudioStreamOGGVorbis::set_data(const PoolVector<uint8_t> &p_data) {
 		}
 	}
 
-	ERR_FAIL_COND_MSG(alloc_try == MAX_TEST_MEM, vformat("Couldn't set vorbis data even with an alloc buffer of %d bytes, report bug.", MAX_TEST_MEM));
+	ERR_FAIL_COND_MSG(alloc_try >= MAX_TEST_MEM, vformat("Couldn't set vorbis data even with an alloc buffer of %d bytes, report bug.", MAX_TEST_MEM));
 }
 
 PoolVector<uint8_t> AudioStreamOGGVorbis::get_data() const {
