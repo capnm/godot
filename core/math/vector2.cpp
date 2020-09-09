@@ -29,6 +29,7 @@
 /*************************************************************************/
 
 #include "vector2.h"
+#include "core/print_string.h"
 
 real_t Vector2::angle() const {
 
@@ -53,6 +54,12 @@ void Vector2::normalize() {
 		l = Math::sqrt(l);
 		x /= l;
 		y /= l;
+	} else {
+#ifdef DEBUG_MEMORY_ALLOC
+		CRASH_NOW_MSG("A zero Vector2 cannot be normalized.");
+#else
+		print_verbose("A zero Vector2 cannot be normalized.");
+#endif
 	}
 }
 
