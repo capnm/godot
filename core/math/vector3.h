@@ -32,6 +32,7 @@
 #define VECTOR3_H
 
 #include "core/math/math_funcs.h"
+#include "core/print_string.h"
 #include "core/ustring.h"
 
 class Basis;
@@ -420,6 +421,11 @@ void Vector3::normalize() {
 
 	real_t lengthsq = length_squared();
 	if (lengthsq == 0) {
+#ifdef DEBUG_MEMORY_ALLOC
+		CRASH_NOW_MSG("A zero Vector3 cannot be normalized.");
+#else
+		print_verbose("A zero Vector3 cannot be normalized.");
+#endif
 		x = y = z = 0;
 	} else {
 		real_t length = Math::sqrt(lengthsq);
