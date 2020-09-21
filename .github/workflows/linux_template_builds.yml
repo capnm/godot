@@ -1,4 +1,4 @@
-name: Android Build
+name: Linux Template Build
 on:
   workflow_dispatch:
 
@@ -9,12 +9,12 @@ on:
 # Global Cache Settings
 env:
   GODOT_BASE_BRANCH: 3.2
-  SCONS_CACHE_LIMIT: 1024
+  SCONS_CACHE_LIMIT: 2048
 
 jobs:
-  android-template:
-    runs-on: "ubuntu-20.04"
 
+  linux-template:
+    runs-on: "ubuntu-20.04"
     name: Template (target=release, tools=no)
 
     steps:
@@ -29,21 +29,12 @@ jobs:
       # Install all packages (except scons)
       - name: Configure dependencies
         run: |
-         sudo apt-get install openjdk-8-jdk
-         echo "::set-env name=JAVA_HOME::usr/lib/jvm/java-8-openjdk-amd64"
-
-      - name: Install Android SDK and NDK
-        run: |
-          echo "::set-env name=PATH::/usr/lib/jvm/java-8-openjdk-amd64/jre/bin:${PATH}"
-          java -version
-          echo "::set-env name=ANDROID_HOME::$(pwd)/godot-dev/build-tools/android-sdk"
-          echo "::set-env name=ANDROID_NDK_ROOT::$(pwd)/godot-dev/build-tools/android-ndk"
-          misc/ci/android-tools-linux.sh
-          source ~/.bashrc
+          sudo apt-get install build-essential pkg-config libx11-dev libxcursor-dev \
+            libxinerama-dev libgl1-mesa-dev libglu-dev libasound2-dev libpulse-dev libudev-dev libxi-dev libxrandr-dev yasm
 
       # Upload cache on completion and check it out now
       - name: Load .scons_cache directory
-        id: android-template-cache
+        id: linux-template-cache
         uses: actions/cache@v2
         with:
           path: ${{github.workspace}}/.scons_cache/
@@ -70,8 +61,22 @@ jobs:
           python --version
           scons --version
 
+      # https://docs.godotengine.org/en/stable/development/compiling/compiling_for_x11.html
+      # https://github.com/godotengine/godot-build-scripts/blob/master/build-linux/build.sh
+      #          ^- Anything but this ugly hack makes a broken template !!!
       - name: Compilation
         env:
           SCONS_CACHE: ${{github.workspace}}/.scons_cache/
         run: |
-          scons -j2 verbose=yes warnings=all werror=yes platform=android target=release tools=no
+          scons -j2 verbose=yes warnings=no progress=no debug_symbols=no use_lto=yes use_static_cpp=yes platform=x11 target=release tools=no
+          ls -al bin
+          mv -v bin/godot* bin/linux_x11_64_release
+          echo "3.2.4.capnm" > bin/version.txt
+          ls -al bin
+
+      # Export artifact
+      - name: Publishing godot linux template
+        uses: actions/upload-artifact@v2
+        with:
+          name: linux-template
+          path: bin/*
