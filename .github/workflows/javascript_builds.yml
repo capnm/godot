@@ -1,10 +1,15 @@
-name: 🌐 JavaScript Builds
-on: [push, pull_request]
+name: HTML5 Build
+on:
+  workflow_dispatch:
+
+  push:
+    tags:
+      - v3.2-capnm**
 
 # Global Cache Settings
 env:
   GODOT_BASE_BRANCH: 3.2
-  SCONS_CACHE_LIMIT: 4096
+  SCONS_CACHE_LIMIT: 2048
   EM_VERSION: 1.39.20
   EM_CACHE_FOLDER: 'emsdk-cache'
 
@@ -74,3 +79,15 @@ jobs:
           SCONS_CACHE: ${{github.workspace}}/.scons_cache/
         run: |
           scons -j2 verbose=yes warnings=all werror=yes platform=javascript target=release tools=no use_closure_compiler=yes
+          ls -all bin
+          mv bin/godot.javascript.opt.zip bin/webassembly_release.zip
+          echo "3.2.4.capnm" > bin/version.txt
+
+      # Export artifact
+      - name: Publishing godot HTML5 template
+        uses: actions/upload-artifact@v2
+        with:
+          name: html5-template
+          path: |
+            bin/version.txt
+            bin/webassembly_release.zip

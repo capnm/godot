@@ -1,4 +1,4 @@
-name: Linux Editor Build
+name: Linux Template Build
 on:
   workflow_dispatch:
 
@@ -9,12 +9,13 @@ on:
 # Global Cache Settings
 env:
   GODOT_BASE_BRANCH: 3.2
-  SCONS_CACHE_LIMIT: 1048
+  SCONS_CACHE_LIMIT: 2048
 
 jobs:
-  linux-editor:
+
+  linux-template:
     runs-on: "ubuntu-20.04"
-    name: Editor (target=release_debug, tools=yes)
+    name: Template (target=release, tools=no)
 
     steps:
       - uses: actions/checkout@v2
@@ -33,7 +34,7 @@ jobs:
 
       # Upload cache on completion and check it out now
       - name: Load .scons_cache directory
-        id: linux-editor-cache
+        id: linux-template-cache
         uses: actions/cache@v2
         with:
           path: ${{github.workspace}}/.scons_cache/
@@ -43,7 +44,7 @@ jobs:
             ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}
             ${{github.job}}-${{env.GODOT_BASE_BRANCH}}
 
-      # Use python 3.x release (works cross platform; best to keep self contained in it's own step)
+      # Use python 3.x release (works cross platform)
       - name: Set up Python 3.x
         uses: actions/setup-python@v2
         with:
@@ -52,30 +53,30 @@ jobs:
           # Optional - x64 or x86 architecture, defaults to x64
           architecture: 'x64'
 
-      # Setup scons, print python version and scons version info, so if anything is broken it won't run the build.
+      # You can test your matrix by printing the current Python version
       - name: Configuring Python packages
         run: |
           python -c "import sys; print(sys.version)"
           python -m pip install scons
           python --version
           scons --version
-          pwd
-          ls -al
 
-      # We should always be explicit with our flags usage here since it's gonna be sure to always set those flags
+      # https://docs.godotengine.org/en/stable/development/compiling/compiling_for_x11.html
+      # https://github.com/godotengine/godot-build-scripts/blob/master/build-linux/build.sh
+      #          ^- Anything but this ugly hack makes a broken template !!!
       - name: Compilation
         env:
           SCONS_CACHE: ${{github.workspace}}/.scons_cache/
         run: |
-          scons use_llvm=yes use_lld=yes -j2 verbose=yes warnings=all werror=yes platform=x11 tools=yes target=release_debug separate_debug_symbols=yes no_editor_splash=yes
-          ls -alh bin
+          scons -j2 verbose=yes warnings=no progress=no debug_symbols=no use_lto=yes use_static_cpp=yes platform=x11 target=release tools=no
+          ls -al bin
+          mv -v bin/godot* bin/linux_x11_64_release
+          echo "3.2.4.capnm" > bin/version.txt
+          ls -al bin
 
       # Export artifact
-      - name: Publishing godot linux editor
+      - name: Publishing godot linux template
         uses: actions/upload-artifact@v2
         with:
-          name: linux-editor
-          path: |
-            bin/godot.x11.opt.tools.64.llvm
-            bin/godot.x11.opt.tools.64.llvm.debugsymbols
-
+          name: linux-template
+          path: bin/*
