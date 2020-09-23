@@ -259,7 +259,7 @@ void Main::print_help(const char *p_binary) {
 	OS::get_singleton()->print("  --resolution <W>x<H>             Request window resolution.\n");
 	OS::get_singleton()->print("  --position <X>,<Y>               Request window position.\n");
 	OS::get_singleton()->print("  --low-dpi                        Force low-DPI mode (macOS and Windows only).\n");
-	OS::get_singleton()->print("  --no-window                      Disable window creation (Windows only). Useful together with --script.\n");
+	OS::get_singleton()->print("  --window, --no-window            Run with or without opening a window. Useful with --script.\n");
 	OS::get_singleton()->print("  --enable-vsync-via-compositor    When vsync is enabled, vsync via the OS' window compositor (Windows only).\n");
 	OS::get_singleton()->print("  --disable-vsync-via-compositor   Disable vsync via the OS' window compositor (Windows only).\n");
 	OS::get_singleton()->print("  --tablet-driver                  Tablet input driver (");
@@ -606,12 +606,14 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 				goto error;
 			}
 
-		} else if (I->get() == "--low-dpi") { // force low DPI (macOS only)
-
+		} else if (I->get() == "--low-dpi") {
+			// Force low DPI (Win, macOS).
 			force_lowdpi = true;
-		} else if (I->get() == "--no-window") { // disable window creation (Windows only)
-
+		} else if (I->get() == "--no-window") {
+			// Run with an invisible window.
 			OS::get_singleton()->set_no_window_mode(true);
+		} else if (I->get() == "--window") {
+			OS::get_singleton()->set_no_window_mode(false);
 		} else if (I->get() == "--tablet-driver") {
 			if (I->next()) {
 				tablet_driver = I->next()->get();
@@ -705,6 +707,7 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 			editor = true;
 #ifdef DEBUG_METHODS_ENABLED
 		} else if (I->get() == "--gdnative-generate-json-api") {
+			OS::get_singleton()->set_no_window_mode(true);
 			// Register as an editor instance to use the GLES2 fallback automatically on hardware that doesn't support the GLES3 backend
 			editor = true;
 
@@ -712,7 +715,7 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 			main_args.push_back(I->get());
 #endif
 		} else if (I->get() == "--export" || I->get() == "--export-debug" || I->get() == "--export-pack") { // Export project
-
+			OS::get_singleton()->set_no_window_mode(true);
 			editor = true;
 			main_args.push_back(I->get());
 #endif
@@ -1528,6 +1531,7 @@ bool Main::start() {
 		else if (i < (args.size() - 1)) {
 			bool parsed_pair = true;
 			if (args[i] == "-s" || args[i] == "--script") {
+				OS::get_singleton()->set_no_window_mode(true);
 				script = args[i + 1];
 			} else if (args[i] == "--test") {
 				test = args[i + 1];
