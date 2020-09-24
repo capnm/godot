@@ -39,7 +39,8 @@ public:
 	real_t d;
 
 	void set_normal(const Vector3 &p_normal);
-	_FORCE_INLINE_ Vector3 get_normal() const { return normal; }; ///Point is coplanar, CMP_EPSILON for precision
+
+	_FORCE_INLINE_ Vector3 get_normal() const { return normal; };
 
 	void normalize();
 	Plane normalized() const;
@@ -50,8 +51,9 @@ public:
 	Vector3 get_any_point() const;
 	Vector3 get_any_perpendicular_normal() const;
 
-	_FORCE_INLINE_ bool is_point_over(const Vector3 &p_point) const; ///< Point is over plane
+	_FORCE_INLINE_ bool is_point_over(const Vector3 &p_point) const;
 	_FORCE_INLINE_ real_t distance_to(const Vector3 &p_point) const;
+	// Point is coplanar, CMP_EPSILON for precision.
 	_FORCE_INLINE_ bool has_point(const Vector3 &p_point, real_t _epsilon = CMP_EPSILON) const;
 
 	/* intersections */
@@ -114,13 +116,18 @@ Plane::Plane(const Vector3 &p_point, const Vector3 &p_normal) :
 
 Plane::Plane(const Vector3 &p_point1, const Vector3 &p_point2, const Vector3 &p_point3, ClockDirection p_dir) {
 
-	if (p_dir == CLOCKWISE)
+	if (p_dir == CLOCKWISE) {
 		normal = (p_point1 - p_point3).cross(p_point1 - p_point2);
-	else
+	} else {
 		normal = (p_point1 - p_point2).cross(p_point1 - p_point3);
+	}
 
-	normal.normalize();
-	d = normal.dot(p_point1);
+	if (normal.length_squared() > 0) {
+		normal.normalize();
+		d = normal.dot(p_point1);
+	} else {
+		d = 0;
+	}
 }
 
 bool Plane::operator==(const Plane &p_plane) const {
