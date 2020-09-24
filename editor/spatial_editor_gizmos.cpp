@@ -668,7 +668,13 @@ bool EditorSpatialGizmo::intersect_ray(Camera *p_camera, const Point2 &p_point, 
 
 		Transform ai = gt.affine_inverse();
 		Vector3 ray_from = ai.xform(p_camera->project_ray_origin(p_point));
-		Vector3 ray_dir = ai.basis.xform(p_camera->project_ray_normal(p_point)).normalized();
+		Vector3 ray_dir = ai.basis.xform(p_camera->project_ray_normal(p_point));
+		if (ray_dir.length_squared() > 0) {
+			ray_dir.normalize();
+		} else {
+			return false;
+		}
+
 		Vector3 rpos, rnorm;
 
 		if (collision_mesh->intersect_ray(ray_from, ray_dir, rpos, rnorm)) {
