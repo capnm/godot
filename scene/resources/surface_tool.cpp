@@ -107,7 +107,12 @@ void SurfaceTool::add_vertex(const Vector3 &p_vertex) {
 	vtx.weights = last_weights;
 	vtx.bones = last_bones;
 	vtx.tangent = last_tangent.normal;
-	vtx.binormal = last_normal.cross(last_tangent.normal).normalized() * last_tangent.d;
+	Vector3 v = last_normal.cross(last_tangent.normal);
+	if (v.length_squared() > 0) {
+		vtx.binormal = v.normalized() * last_tangent.d;
+	} else {
+		vtx.binormal = v;
+	}
 
 	const int expected_vertices = 4;
 

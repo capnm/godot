@@ -83,11 +83,17 @@ void Basis::orthonormalize() {
 	Vector3 y = get_axis(1);
 	Vector3 z = get_axis(2);
 
-	x.normalize();
-	y = (y - x * (x.dot(y)));
-	y.normalize();
+	if (x.length_squared() > 0) {
+		x.normalize();
+		y = (y - x * (x.dot(y)));
+	}
+	if (y.length_squared() > 0) {
+		y.normalize();
+	}
 	z = (z - x * (x.dot(z)) - y * (y.dot(z)));
-	z.normalize();
+	if (z.length_squared() > 0) {
+		z.normalize();
+	}
 
 	set_axis(0, x);
 	set_axis(1, y);
