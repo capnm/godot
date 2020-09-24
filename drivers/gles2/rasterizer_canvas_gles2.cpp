@@ -878,7 +878,10 @@ void RasterizerCanvasGLES2::render_batches(Item::Command *const *p_commands, Ite
 									glDisable(GL_LINE_SMOOTH);
 #endif
 							} else {
-								Vector2 t = (line->from - line->to).normalized().tangent() * line->width * 0.5;
+								Vector2 t = line->from - line->to;
+								if (t.length_squared() > 0) {
+									t = t.normalized().tangent() * line->width * 0.5;
+								}
 
 								Vector2 verts[4] = {
 									line->from - t,
