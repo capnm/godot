@@ -3270,13 +3270,26 @@ void CanvasItemEditor::_draw_selection() {
 					int prev = (i + 3) % 4;
 					int next = (i + 1) % 4;
 
-					Vector2 ofs = ((endpoints[i] - endpoints[prev]).normalized() + ((endpoints[i] - endpoints[next]).normalized())).normalized();
-					ofs *= Math_SQRT2 * (select_handle->get_size().width / 2);
+					Vector2 ep1 = endpoints[i] - endpoints[prev];
+					if (ep1.length_squared() > 0) {
+						ep1.normalize();
+					}
+					Vector2 ep2 = endpoints[i] - endpoints[next];
+					if (ep2.length_squared() > 0) {
+						ep2.normalize();
+					}
+					Vector2 ofs = ep1 + ep2;
+					if (ofs.length_squared() > 0) {
+						ofs = ofs.normalized() * Math_SQRT2 * (select_handle->get_size().width / 2);
+					}
 
 					select_handle->draw(ci, (endpoints[i] + ofs - (select_handle->get_size() / 2)).floor());
 
 					ofs = (endpoints[i] + endpoints[next]) / 2;
-					ofs += (endpoints[next] - endpoints[i]).tangent().normalized() * (select_handle->get_size().width / 2);
+					Vector2 ept = (endpoints[next] - endpoints[i]).tangent();
+					if (ept.length_squared() > 0) {
+						ofs += ept.normalized() * (select_handle->get_size().width / 2);
+					}
 
 					select_handle->draw(ci, (ofs - (select_handle->get_size() / 2)).floor());
 				}

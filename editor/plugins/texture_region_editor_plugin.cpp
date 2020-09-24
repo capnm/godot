@@ -156,7 +156,18 @@ void TextureRegionEditor::_region_draw() {
 		int prev = (i + 3) % 4;
 		int next = (i + 1) % 4;
 
-		Vector2 ofs = ((endpoints[i] - endpoints[prev]).normalized() + ((endpoints[i] - endpoints[next]).normalized())).normalized();
+		Vector2 ep1 = endpoints[i] - endpoints[prev];
+		if (ep1.length_squared() > 0) {
+			ep1.normalize();
+		}
+		Vector2 ep2 = endpoints[i] - endpoints[next];
+		if (ep2.length_squared() > 0) {
+			ep2.normalize();
+		}
+		Vector2 ofs = ep1 + ep2;
+		if (ofs.length_squared() > 0) {
+			ofs.normalize();
+		}
 		ofs *= Math_SQRT2 * (select_handle->get_size().width / 2);
 
 		edit_draw->draw_line(endpoints[i] - draw_ofs * draw_zoom, endpoints[next] - draw_ofs * draw_zoom, color, 2);
@@ -165,7 +176,10 @@ void TextureRegionEditor::_region_draw() {
 			edit_draw->draw_texture(select_handle, (endpoints[i] + ofs - (select_handle->get_size() / 2)).floor() - draw_ofs * draw_zoom);
 
 		ofs = (endpoints[next] - endpoints[i]) / 2;
-		ofs += (endpoints[next] - endpoints[i]).tangent().normalized() * (select_handle->get_size().width / 2);
+		Vector2 t = (endpoints[next] - endpoints[i]).tangent();
+		if (t.length_squared() > 0) {
+			ofs += t.normalized() * (select_handle->get_size().width / 2);
+		}
 
 		if (snap_mode != SNAP_AUTOSLICE)
 			edit_draw->draw_texture(select_handle, (endpoints[i] + ofs - (select_handle->get_size() / 2)).floor() - draw_ofs * draw_zoom);
