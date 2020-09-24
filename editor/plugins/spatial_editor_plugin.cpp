@@ -1774,22 +1774,35 @@ void SpatialEditorViewport::_sinput(const Ref<InputEvent> &p_event) {
 						if (!plane.intersects_ray(_edit.click_ray_pos, _edit.click_ray, &click))
 							break;
 
-						Vector3 y_axis = (click - _edit.center).normalized();
-						Vector3 x_axis = plane.normal.cross(y_axis).normalized();
+						Vector3 y_axis = (click - _edit.center);
+						if (y_axis.length_squared() == 0) {
+							break;
+						}
+						y_axis = y_axis.normalized();
+
+						Vector3 x_axis = plane.normal.cross(y_axis);
+						if (x_axis.length_squared() == 0) {
+							break;
+						}
+						x_axis = x_axis.normalized();
 
 						float angle = Math::atan2(x_axis.dot(intersection - _edit.center), y_axis.dot(intersection - _edit.center));
 
 						if (_edit.snap || spatial_editor->is_snap_enabled()) {
 							snap = spatial_editor->get_rotate_snap();
 						}
-						angle = Math::rad2deg(angle) + snap * 0.5; //else it won't reach +180
+
+						// Else it won't reach +180.
+						angle = Math::rad2deg(angle) + snap * 0.5;
+
 						angle -= Math::fmod(angle, snap);
 						set_message(vformat(TTR("Rotating %s degrees."), String::num(angle, snap_step_decimals)));
 						angle = Math::deg2rad(angle);
 
 						List<Node *> &selection = editor_selection->get_selected_node_list();
 
-						bool local_coords = (spatial_editor->are_local_coords_enabled() && _edit.plane != TRANSFORM_VIEW); // Disable local transformation for TRANSFORM_VIEW
+						// Disable local transformation for TRANSFORM_VIEW.
+						bool local_coords = (spatial_editor->are_local_coords_enabled() && _edit.plane != TRANSFORM_VIEW);
 
 						for (List<Node *>::Element *E = selection.front(); E; E = E->next()) {
 
@@ -1815,9 +1828,10 @@ void SpatialEditorViewport::_sinput(const Ref<InputEvent> &p_event) {
 								t.basis = original_local.get_basis().orthonormalized() * rot;
 								t.origin = original_local.origin;
 
-								// Apply rotation
+								// Apply rotation.
 								sp->set_transform(t);
-								sp->set_scale(original_local.basis.get_scale()); // re-apply original scale
+								// Re-apply original scale.
+								sp->set_scale(original_local.basis.get_scale());
 
 							} else {
 
@@ -1828,7 +1842,7 @@ void SpatialEditorViewport::_sinput(const Ref<InputEvent> &p_event) {
 								r.basis.rotate(plane.normal, angle);
 								t = base * r * base.inverse() * original;
 
-								// Apply rotation
+								// Apply rotation.
 								sp->set_global_transform(t);
 							}
 						}
