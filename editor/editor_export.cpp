@@ -692,10 +692,11 @@ EditorExportPlatform::FeatureContainers EditorExportPlatform::get_feature_contai
 	return result;
 }
 
-EditorExportPlatform::ExportNotifier::ExportNotifier(EditorExportPlatform &p_platform, const Ref<EditorExportPreset> &p_preset, bool p_debug, const String &p_path, int p_flags) {
+EditorExportPlatform::ExportNotifier::ExportNotifier(EditorExportPlatform &p_platform,
+		const Ref<EditorExportPreset> &p_preset, bool p_debug, const String &p_path, int p_flags) {
 	FeatureContainers features = p_platform.get_feature_containers(p_preset);
 	Vector<Ref<EditorExportPlugin> > export_plugins = EditorExport::get_singleton()->get_export_plugins();
-	//initial export plugin callback
+	// Initial export plugin callback.
 	for (int i = 0; i < export_plugins.size(); i++) {
 		if (export_plugins[i]->get_script_instance()) { //script based
 			export_plugins.write[i]->_export_begin_script(features.features_pv, p_debug, p_path, p_flags);
@@ -715,8 +716,9 @@ EditorExportPlatform::ExportNotifier::~ExportNotifier() {
 	}
 }
 
-Error EditorExportPlatform::export_project_files(const Ref<EditorExportPreset> &p_preset, EditorExportSaveFunction p_func, void *p_udata, EditorExportSaveSharedObject p_so_func) {
-	//figure out paths of files that will be exported
+Error EditorExportPlatform::export_project_files(const Ref<EditorExportPreset> &p_preset,
+		EditorExportSaveFunction p_func, void *p_udata, EditorExportSaveSharedObject p_so_func) {
+	// Figure out paths of files that will be exported.
 	Set<String> paths;
 	Vector<String> path_remaps;
 
@@ -735,7 +737,7 @@ Error EditorExportPlatform::export_project_files(const Ref<EditorExportPreset> &
 		}
 	}
 
-	//add native icons to non-resource include list
+	// Add native icons to non-resource include list.
 	_edit_filter_list(paths, String("*.icns"), false);
 	_edit_filter_list(paths, String("*.ico"), false);
 
@@ -763,7 +765,7 @@ Error EditorExportPlatform::export_project_files(const Ref<EditorExportPreset> &
 	Set<String> &features = feature_containers.features;
 	PoolVector<String> &features_pv = feature_containers.features_pv;
 
-	//store everything in the export medium
+	// Store everything in the export medium.
 	int idx = 0;
 	int total = paths.size();
 
@@ -773,7 +775,7 @@ Error EditorExportPlatform::export_project_files(const Ref<EditorExportPreset> &
 		String type = ResourceLoader::get_resource_type(path);
 
 		if (FileAccess::exists(path + ".import")) {
-			//file is imported, replace by what it imports
+			// File is imported, replace by what it imports.
 			Ref<ConfigFile> config;
 			config.instance();
 			Error err = config->load(path + ".import");
@@ -824,8 +826,22 @@ Error EditorExportPlatform::export_project_files(const Ref<EditorExportPreset> &
 				return err;
 			}
 
-			//also save the .import file
-			Vector<uint8_t> array = FileAccess::get_file_as_array(path + ".import");
+			// Remove sections from the .import file that are never relevant in exported packs.
+			config->erase_section("params");
+			config->erase_section("deps");
+			String tmp_path = EditorSettings::get_singleton()->get_cache_dir().plus_file("tmpfile.import");
+			err = config->save(tmp_path);
+			if (err != OK) {
+				DirAccess::remove_file_or_error(tmp_path);
+				return err;
+			}
+			Vector<uint8_t> array = FileAccess::get_file_as_array(tmp_path);
+			if (array.size() == 0) {
+				DirAccess::remove_file_or_error(tmp_path);
+				return ERR_FILE_CORRUPT;
+			}
+			DirAccess::remove_file_or_error(tmp_path);
+
 			err = p_func(p_udata, path + ".import", array, idx, total);
 
 			if (err != OK) {
@@ -836,7 +852,8 @@ Error EditorExportPlatform::export_project_files(const Ref<EditorExportPreset> &
 
 			bool do_export = true;
 			for (int i = 0; i < export_plugins.size(); i++) {
-				if (export_plugins[i]->get_script_instance()) { //script based
+				if (export_plugins[i]->get_script_instance()) {
+					// Script based.
 					export_plugins.write[i]->_export_file_script(path, type, features_pv);
 				} else {
 					export_plugins.write[i]->_export_file(path, type, features);
@@ -848,9 +865,11 @@ Error EditorExportPlatform::export_project_files(const Ref<EditorExportPreset> &
 				}
 
 				for (int j = 0; j < export_plugins[i]->extra_files.size(); j++) {
-					p_func(p_udata, export_plugins[i]->extra_files[j].path, export_plugins[i]->extra_files[j].data, idx, total);
+					p_func(p_udata, export_plugins[i]->extra_files[j].path,
+							export_plugins[i]->extra_files[j].data, idx, total);
 					if (export_plugins[i]->extra_files[j].remap) {
-						do_export = false; //if remap, do not
+						// If remap, do not export.
+						do_export = false;
 						path_remaps.push_back(path);
 						path_remaps.push_back(export_plugins[i]->extra_files[j].path);
 					}
@@ -862,9 +881,10 @@ Error EditorExportPlatform::export_project_files(const Ref<EditorExportPreset> &
 				export_plugins.write[i]->_clear();
 
 				if (!do_export)
-					break; //apologies, not exporting
+					// Not exporting.
+					break;
 			}
-			//just store it as it comes
+			// Store it as it comes.
 			if (do_export) {
 				Vector<uint8_t> array = FileAccess::get_file_as_array(path);
 				p_func(p_udata, path, array, idx, total);
@@ -874,7 +894,7 @@ Error EditorExportPlatform::export_project_files(const Ref<EditorExportPreset> &
 		idx++;
 	}
 
-	//save config!
+	// Save config!
 
 	Vector<String> custom_list;
 
@@ -892,7 +912,9 @@ Error EditorExportPlatform::export_project_files(const Ref<EditorExportPreset> &
 
 	ProjectSettings::CustomMap custom_map;
 	if (path_remaps.size()) {
-		if (1) { //new remap mode, use always as it's friendlier with multiple .pck exports
+		if (1) {
+			// New remap mode, use always as it's friendlier
+			// with multiple .pck exports
 			for (int i = 0; i < path_remaps.size(); i += 2) {
 				String from = path_remaps[i];
 				String to = path_remaps[i + 1];
@@ -907,12 +929,14 @@ Error EditorExportPlatform::export_project_files(const Ref<EditorExportPreset> &
 				p_func(p_udata, from + ".remap", new_file, idx, total);
 			}
 		} else {
-			//old remap mode, will still work, but it's unused because it's not multiple pck export friendly
+			// Old remap mode, will still work, but it's unused
+			// because it's not multiple pck export friendly.
 			custom_map["path_remap/remapped_paths"] = path_remaps;
 		}
 	}
 
-	// Store icon and splash images directly, they need to bypass the import system and be loaded as images
+	// Store icon and splash images directly, they need to bypass
+	// the import system and be loaded as images.
 	String icon = ProjectSettings::get_singleton()->get("application/config/icon");
 	String splash = ProjectSettings::get_singleton()->get("application/boot_splash/image");
 	if (icon != String() && FileAccess::exists(icon)) {
@@ -944,7 +968,8 @@ Error EditorExportPlatform::_add_shared_object(void *p_userdata, const SharedObj
 	return OK;
 }
 
-Error EditorExportPlatform::save_pack(const Ref<EditorExportPreset> &p_preset, const String &p_path, Vector<SharedObject> *p_so_files, bool p_embed, int64_t *r_embedded_start, int64_t *r_embedded_size) {
+Error EditorExportPlatform::save_pack(const Ref<EditorExportPreset> &p_preset, const String &p_path,
+		Vector<SharedObject> *p_so_files, bool p_embed, int64_t *r_embedded_start, int64_t *r_embedded_size) {
 
 	EditorProgress ep("savepack", TTR("Packing"), 102, true);
 
@@ -959,26 +984,28 @@ Error EditorExportPlatform::save_pack(const Ref<EditorExportPreset> &p_preset, c
 
 	Error err = export_project_files(p_preset, _save_pack_file, &pd, _add_shared_object);
 
-	memdelete(ftmp); //close tmp file
+	// Close tmp file.
+	memdelete(ftmp);
 
 	if (err != OK) {
 		DirAccess::remove_file_or_error(tmppath);
 		return err;
 	}
 
-	pd.file_ofs.sort(); //do sort, so we can do binary search later
+	// Do sort, so we can do binary search later.
+	pd.file_ofs.sort();
 
 	FileAccess *f;
 	int64_t embed_pos = 0;
 	if (!p_embed) {
-		// Regular output to separate PCK file
+		// Regular output to separate PCK file.
 		f = FileAccess::open(p_path, FileAccess::WRITE);
 		if (!f) {
 			DirAccess::remove_file_or_error(tmppath);
 			ERR_FAIL_V(ERR_CANT_CREATE);
 		}
 	} else {
-		// Append to executable
+		// Append to executable.
 		f = FileAccess::open(p_path, FileAccess::READ_WRITE);
 		if (!f) {
 			DirAccess::remove_file_or_error(tmppath);
@@ -992,7 +1019,7 @@ Error EditorExportPlatform::save_pack(const Ref<EditorExportPreset> &p_preset, c
 			*r_embedded_start = embed_pos;
 		}
 
-		// Ensure embedded PCK starts at a 64-bit multiple
+		// Ensure embedded PCK starts at a 64-bit multiple.
 		int pad = f->get_position() % 8;
 		for (int i = 0; i < pad; i++) {
 			f->store_8(0);
@@ -1008,7 +1035,7 @@ Error EditorExportPlatform::save_pack(const Ref<EditorExportPreset> &p_preset, c
 	f->store_32(VERSION_PATCH);
 
 	for (int i = 0; i < 16; i++) {
-		//reserved
+		// Reserved.
 		f->store_32(0);
 	}
 
@@ -1016,15 +1043,20 @@ Error EditorExportPlatform::save_pack(const Ref<EditorExportPreset> &p_preset, c
 
 	int64_t header_size = f->get_position();
 
-	//precalculate header size
+	// Precalculate header size.
 
 	for (int i = 0; i < pd.file_ofs.size(); i++) {
-		header_size += 4; // size of path string (32 bits is enough)
+		// Size of path string (32 bits is enough).
+		header_size += 4;
 		int string_len = pd.file_ofs[i].path_utf8.length();
-		header_size += string_len + _get_pad(4, string_len); ///size of path string
-		header_size += 8; // offset to file _with_ header size included
-		header_size += 8; // size of file
-		header_size += 16; // md5
+		// Size of path string.
+		header_size += string_len + _get_pad(4, string_len);
+		// Offset to file _with_ header size included.
+		header_size += 8;
+		// Size of file.
+		header_size += 8;
+		// md5
+		header_size += 16;
 	}
 
 	int header_padding = _get_pad(PCK_PADDING, header_size);
@@ -1041,8 +1073,10 @@ Error EditorExportPlatform::save_pack(const Ref<EditorExportPreset> &p_preset, c
 		}
 
 		f->store_64(pd.file_ofs[i].ofs + header_padding + header_size);
-		f->store_64(pd.file_ofs[i].size); // pay attention here, this is where file is
-		f->store_buffer(pd.file_ofs[i].md5.ptr(), 16); //also save md5 for file
+		// Pay attention here, this is where file is.
+		f->store_64(pd.file_ofs[i].size);
+		// Also save md5 for file.
+		f->store_buffer(pd.file_ofs[i].md5.ptr(), 16);
 	}
 
 	for (int i = 0; i < header_padding; i++) {
