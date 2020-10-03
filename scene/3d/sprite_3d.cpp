@@ -430,13 +430,15 @@ SpriteBase3D::SpriteBase3D() {
 	mesh_array[VS::ARRAY_COLOR] = mesh_colors;
 	mesh_array[VS::ARRAY_TEX_UV] = mesh_uvs;
 
-	VS::get_singleton()->mesh_add_surface_from_arrays(mesh, VS::PRIMITIVE_TRIANGLE_FAN, mesh_array);
+	VS::get_singleton()->mesh_add_surface_from_arrays(mesh, VS::PRIMITIVE_TRIANGLE_FAN,
+			mesh_array, Array(), VS::ARRAY_COMPRESS_DEFAULT & ~VS::ARRAY_COMPRESS_TEX_UV);
 	const int surface_vertex_len = VS::get_singleton()->mesh_surface_get_array_len(mesh, 0);
 	const int surface_index_len = VS::get_singleton()->mesh_surface_get_array_index_len(mesh, 0);
 
 	mesh_surface_format = VS::get_singleton()->mesh_surface_get_format(mesh, 0);
 	mesh_buffer = VS::get_singleton()->mesh_surface_get_array(mesh, 0);
-	mesh_stride = VS::get_singleton()->mesh_surface_make_offsets_from_format(mesh_surface_format, surface_vertex_len, surface_index_len, mesh_surface_offsets);
+	mesh_stride = VS::get_singleton()->mesh_surface_make_offsets_from_format(mesh_surface_format,
+			surface_vertex_len, surface_index_len, mesh_surface_offsets);
 }
 
 SpriteBase3D::~SpriteBase3D() {
@@ -551,7 +553,7 @@ void Sprite3D::_draw() {
 
 	AABB aabb;
 
-	// Buffer is using default compression, so everything except position is compressed
+	// Everything except position and UV is compressed.
 	PoolVector<uint8_t>::Write write_buffer = mesh_buffer.write();
 
 	int8_t v_normal[4] = {
@@ -585,16 +587,11 @@ void Sprite3D::_draw() {
 		} else {
 			aabb.expand_to(vtx);
 		}
-		if (mesh_surface_format & VS::ARRAY_COMPRESS_TEX_UV) {
-			uint16_t v_uv[2] = { Math::make_half_float(uvs[i].x), Math::make_half_float(uvs[i].y) };
-			copymem(&write_buffer[i * mesh_stride + mesh_surface_offsets[VS::ARRAY_TEX_UV]], v_uv, 4);
-		} else {
-			float v_uv[2] = { uvs[i].x, uvs[i].y };
-			copymem(&write_buffer[i * mesh_stride + mesh_surface_offsets[VS::ARRAY_TEX_UV]], v_uv, 8);
-		}
+
+		float v_uv[2] = { uvs[i].x, uvs[i].y };
+		copymem(&write_buffer[i * mesh_stride + mesh_surface_offsets[VS::ARRAY_TEX_UV]], v_uv, 8);
 
 		float v_vertex[3] = { vtx.x, vtx.y, vtx.z };
-
 		copymem(&write_buffer[i * mesh_stride + mesh_surface_offsets[VS::ARRAY_VERTEX]], &v_vertex, sizeof(float) * 3);
 		copymem(&write_buffer[i * mesh_stride + mesh_surface_offsets[VS::ARRAY_NORMAL]], v_normal, 4);
 		copymem(&write_buffer[i * mesh_stride + mesh_surface_offsets[VS::ARRAY_TANGENT]], v_tangent, 4);
@@ -918,7 +915,7 @@ void AnimatedSprite3D::_draw() {
 
 	AABB aabb;
 
-	// Buffer is using default compression, so everything except position is compressed
+	// Everything except position and UV is compressed.
 	PoolVector<uint8_t>::Write write_buffer = mesh_buffer.write();
 
 	int8_t v_normal[4] = {
@@ -953,15 +950,10 @@ void AnimatedSprite3D::_draw() {
 			aabb.expand_to(vtx);
 		}
 
-		if (mesh_surface_format & VS::ARRAY_COMPRESS_TEX_UV) {
-			uint16_t v_uv[2] = { Math::make_half_float(uvs[i].x), Math::make_half_float(uvs[i].y) };
-			copymem(&write_buffer[i * mesh_stride + mesh_surface_offsets[VS::ARRAY_TEX_UV]], v_uv, 4);
-		} else {
-			float v_uv[2] = { uvs[i].x, uvs[i].y };
-			copymem(&write_buffer[i * mesh_stride + mesh_surface_offsets[VS::ARRAY_TEX_UV]], v_uv, 8);
-		}
-		float v_vertex[3] = { vtx.x, vtx.y, vtx.z };
+		float v_uv[2] = { uvs[i].x, uvs[i].y };
+		copymem(&write_buffer[i * mesh_stride + mesh_surface_offsets[VS::ARRAY_TEX_UV]], v_uv, 8);
 
+		float v_vertex[3] = { vtx.x, vtx.y, vtx.z };
 		copymem(&write_buffer[i * mesh_stride + mesh_surface_offsets[VS::ARRAY_VERTEX]], &v_vertex, sizeof(float) * 3);
 		copymem(&write_buffer[i * mesh_stride + mesh_surface_offsets[VS::ARRAY_NORMAL]], v_normal, 4);
 		copymem(&write_buffer[i * mesh_stride + mesh_surface_offsets[VS::ARRAY_TANGENT]], v_tangent, 4);
