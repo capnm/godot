@@ -796,6 +796,8 @@ bool Space2DSW::test_body_motion(Body2DSW *p_body, const Transform2D &p_from, co
 						cbk.valid_depth = MAX(owc_margin, p_margin); //user specified, but never less than actual margin or it won't work
 						cbk.invalid_by_dir = 0;
 
+						// Adjust margin to allow for relative motion between bodies.
+						cbk.valid_depth += p_motion.dot(cbk.valid_dir);
 						if (col_obj->get_type() == CollisionObject2DSW::TYPE_BODY) {
 							const Body2DSW *b = static_cast<const Body2DSW *>(col_obj);
 							if (b->get_mode() == Physics2DServer::BODY_MODE_KINEMATIC || b->get_mode() == Physics2DServer::BODY_MODE_RIGID) {
@@ -803,9 +805,7 @@ bool Space2DSW::test_body_motion(Body2DSW *p_body, const Transform2D &p_from, co
 								Vector2 lv = b->get_linear_velocity();
 								//compute displacement from linear velocity
 								Vector2 motion = lv * Physics2DDirectBodyStateSW::singleton->step;
-								float motion_len = motion.length();
-								motion.normalize();
-								cbk.valid_depth += motion_len * MAX(motion.dot(-cbk.valid_dir), 0.0);
+								cbk.valid_depth += motion.dot(-cbk.valid_dir);
 							}
 						}
 					} else {
@@ -849,7 +849,7 @@ bool Space2DSW::test_body_motion(Body2DSW *p_body, const Transform2D &p_from, co
 
 				Vector2 a = sr[i * 2 + 0];
 				Vector2 b = sr[i * 2 + 1];
-				recover_motion += (b - a) * 0.4;
+				recover_motion += (b - a) / cbk.amount;
 			}
 
 			if (recover_motion == Vector2()) {
