@@ -9,7 +9,7 @@ on:
 # Global Cache Settings
 env:
   GODOT_BASE_BRANCH: 3.2
-  SCONS_CACHE_LIMIT: 1024
+  SCONS_CACHE_LIMIT: 2048
 
 jobs:
   android-template:
@@ -30,7 +30,7 @@ jobs:
       - name: Configure dependencies
         run: |
          sudo apt-get install openjdk-8-jdk
-         echo "::set-env name=JAVA_HOME::usr/lib/jvm/java-8-openjdk-amd64"
+         echo "::set-env name=JAVA_HOME::/usr/lib/jvm/java-8-openjdk-amd64"
 
       - name: Install Android SDK and NDK
         run: |
@@ -74,4 +74,19 @@ jobs:
         env:
           SCONS_CACHE: ${{github.workspace}}/.scons_cache/
         run: |
-          scons -j2 verbose=yes warnings=all werror=yes platform=android target=release tools=no
+          scons -j2 verbose=yes platform=android target=release android_arch=armv7
+          scons -j2 verbose=yes platform=android target=release android_arch=arm64v8
+          pushd platform/android/java
+          ./gradlew generateGodotTemplates
+          popd
+          pwd
+          ls -al
+          echo "3.2.4.capnm" > bin/version.txt
+          ls -al bin
+
+      # Export artifact
+      - name: Publishing godot linux template
+        uses: actions/upload-artifact@v2
+        with:
+          name: android-template
+          path: bin/*
