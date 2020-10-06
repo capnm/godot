@@ -15,7 +15,7 @@ jobs:
 
   linux-template:
     runs-on: "ubuntu-20.04"
-    name: Template (target=release, tools=no)
+    name: Template (tools=no)
 
     steps:
       - uses: actions/checkout@v2
@@ -63,14 +63,13 @@ jobs:
 
       # https://docs.godotengine.org/en/stable/development/compiling/compiling_for_x11.html
       # https://github.com/godotengine/godot-build-scripts/blob/master/build-linux/build.sh
-      #          ^- Anything but this ugly hack makes a broken template !!!
+      #          ^- Anything but this hack makes a broken template !!!
       - name: Compilation
         env:
           SCONS_CACHE: ${{github.workspace}}/.scons_cache/
         run: |
           scons -j2 verbose=yes warnings=no progress=no debug_symbols=no use_lto=yes use_static_cpp=yes platform=x11 target=release tools=no
-          ls -al bin
-          mv -v bin/godot* bin/linux_x11_64_release
+          scons -j2 verbose=yes warnings=no progress=no debug_symbols=no use_lto=yes use_static_cpp=yes platform=x11 target=debug tools=no
           echo "3.2.4.capnm" > bin/version.txt
           ls -al bin
 

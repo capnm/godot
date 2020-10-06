@@ -68,6 +68,6 @@ jobs:
     - name: publishing godot windows-editor
       uses: actions/upload-artifact@v1
       with:
-        name: windows-editor (x64)
+        name: windows-editor
         path: bin/godot.windows.opt.tools.64.exe
 

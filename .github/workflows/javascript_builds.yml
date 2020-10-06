@@ -79,7 +79,8 @@ jobs:
           SCONS_CACHE: ${{github.workspace}}/.scons_cache/
         run: |
           scons -j2 verbose=yes warnings=all werror=yes platform=javascript target=release tools=no use_closure_compiler=yes
-          ls -all bin
+          scons -j2 verbose=yes warnings=all werror=yes platform=javascript target=debug tools=no use_closure_compiler=yes
+          ls -alh bin
           mv bin/godot.javascript.opt.zip bin/webassembly_release.zip
           echo "3.2.4.capnm" > bin/version.txt
 
@@ -89,5 +90,4 @@ jobs:
         with:
           name: html5-template
           path: |
-            bin/version.txt
-            bin/webassembly_release.zip
+            bin/*

@@ -67,7 +67,7 @@ jobs:
         env:
           SCONS_CACHE: ${{github.workspace}}/.scons_cache/
         run: |
-          scons use_llvm=yes use_lld=yes -j2 verbose=yes warnings=all werror=yes platform=x11 tools=yes target=release_debug separate_debug_symbols=yes no_editor_splash=yes
+          scons use_llvm=yes use_lld=yes use_static_cpp=yes -j2 verbose=yes warnings=all werror=yes platform=x11 tools=yes target=release_debug separate_debug_symbols=yes no_editor_splash=yes
           ls -alh bin
 
       # Export artifact

@@ -11,12 +11,12 @@ on:
 env:
   GODOT_BASE_BRANCH: 3.2
   SCONS_CACHE_MSVC_CONFIG: true
-  SCONS_CACHE_LIMIT: 1024
+  SCONS_CACHE_LIMIT: 2048
 
 jobs:
   windows-template:
     runs-on: "windows-latest"
-    name: Template (target=release, tools=no)
+    name: Template (tools=no)
 
     steps:
     - uses: actions/checkout@v2
@@ -56,11 +56,14 @@ jobs:
         SCONS_CACHE: /.scons_cache/
       run: |
         scons -j2 verbose=yes warnings=all werror=yes platform=windows target=release tools=no
+        scons -j2 verbose=yes warnings=all werror=yes platform=windows target=debug tools=no
         ls bin
         rm bin/*.exp
         rm bin/*.lib
         rm bin/*.pdb
-        mv bin/*.exe bin/windows_64_release.exe
+        rm bin/*.ilk
+        mv bin/godot.windows.opt.64.exe bin/windows_64_release.exe
+        mv bin/godot.windows.debug.64.exe bin/windows_64_debug.exe
         echo "3.2.4.capnm" > bin/version.txt
 
 # Build Product Upload (tested and working)

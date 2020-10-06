@@ -2,9 +2,9 @@ name: macOS Build
 on:
   workflow_dispatch:
 
-  push:
-    tags:
-      - v3.2-capnm**
+#  push:
+#    tags:
+#      - v3.2-capnm**
 # Global Cache Settings
 env:
   GODOT_BASE_BRANCH: 3.2
