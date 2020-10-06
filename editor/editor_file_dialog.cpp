@@ -56,7 +56,6 @@ VBoxContainer *EditorFileDialog::get_vbox() {
 void EditorFileDialog::_notification(int p_what) {
 
 	if (p_what == NOTIFICATION_ENTER_TREE) {
-
 		// Update icons.
 		mode_thumbnails->set_icon(get_icon("FileThumbnail", "EditorIcons"));
 		mode_list->set_icon(get_icon("FileList", "EditorIcons"));
