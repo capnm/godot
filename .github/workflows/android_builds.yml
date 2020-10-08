@@ -29,24 +29,20 @@ jobs:
       # The system image has a not working java version:
       # /usr/lib/jvm/adoptopenjdk-11-hotspot-amd64/bin/java
       # openjdk version "11.0.8" 2020-07-14
-      # Install the official one.
+      # Install the official version.
+      # $JAVA_HOME is needed for gradle.
       - name: Install and configure dependencies
         run: |
           sudo apt-get install openjdk-8-jdk
           sudo update-java-alternatives -s java-1.8.0-openjdk-amd64
           echo "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" >> $GITHUB_ENV
 
-          # Later for scons:
-          echo "ANDROID_HOME=$(pwd)/godot-dev/build-tools/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_NDK_ROOT=$(pwd)/godot-dev/build-tools/android-ndk" >> $GITHUB_ENV
-
-
       - name: Install Android SDK and NDK
         run: |
-          echo "JAVA_HOME: ${JAVA_home}"
-          echo "java path: $(which java)"
           java -version
           misc/ci/android-tools-linux.sh
+          echo "ANDROID_HOME=$(pwd)/godot-dev/build-tools/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=$(pwd)/godot-dev/build-tools/android-ndk" >> $GITHUB_ENV
 
       # Upload cache on completion and check it out now
       - name: Load .scons_cache directory
@@ -83,22 +79,23 @@ jobs:
           SCONS_CACHE: ${{github.workspace}}/.scons_cache/
         run: |
           mkdir -p out/templates
-          echo "Build commands:" > out/templates/info.txt
+          i="out/templates/info-android-template.txt"
+          echo "Build commands:" > "${i}"
 
           c="scons -j2 verbose=yes platform=android target=release android_arch=armv7"
-          echo "${c}" | tee -a out/templates/info.txt
+          echo "${c}" | tee -a "${i}"
           ${c}
 
           c="scons -j2 verbose=yes platform=android target=release android_arch=arm64v8"
-          echo "${c}" | tee -a out/templates/info.txt
+          echo "${c}" | tee -a "${i}"
           ${c}
 
           c="scons -j2 verbose=yes platform=android target=release_debug android_arch=armv7"
-          echo "${c}" | tee -a out/templates/info.txt
+          echo "${c}" | tee -a "${i}"
           ${c}
 
           c="scons -j2 verbose=yes platform=android target=release_debug android_arch=arm64v8"
-          echo "${c}" | tee -a out/templates/info.txt
+          echo "${c}" | tee -a "${i}"
           ${c}
 
           pushd platform/android/java
@@ -107,13 +104,15 @@ jobs:
 
           echo "path: $(pwd)"
           ls -al
-          echo '----' >> out/templates/info.txt
-          ls -alh bin | tee -a out/templates/info.txt
-          echo '----' >> out/templates/info.txt
-          java -version 2>> out/templates/info.txt
-          echo '----' >> out/templates/info.txt
-          echo "GITHUB_REF: $GITHUB_REF" | tee -a out/templates/info.txt
-          echo "GITHUB_SHA: $GITHUB_SHA" | tee -a out/templates/info.txt
+          echo '----' >> "${i}"
+          ls -alh bin | tee -a "${i}"
+          echo '----' >> "${i}"
+          java -version 2>> "${i}"
+          echo '----' >> "${i}"
+          echo "GITHUB_REF: $GITHUB_REF" | tee -a "${i}"
+          echo "GITHUB_SHA: $GITHUB_SHA" | tee -a "${i}"
+          echo "$(git log -1)" | tee -a "${i}"
+
           echo "3.2.4.capnm" > out/templates/version.txt
 
           mv -v bin/android_debug.apk out/templates/

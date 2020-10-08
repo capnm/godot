@@ -83,23 +83,24 @@ jobs:
           SCONS_CACHE: ${{github.workspace}}/.scons_cache/
         run: |
           mkdir -p out/templates
-          echo "Build commands:" > out/templates/info.txt
+          i="out/templates/info-html5-template.txt"
+          echo "Build commands:" > "${i}"
 
           c="scons -j2 verbose=yes warnings=all werror=yes platform=javascript target=release debug_symbols=no tools=no use_closure_compiler=yes"
-          echo "${c}" | tee -a out/templates/info.txt
+          echo "${c}" | tee -a "${i}"
           ${c}
 
           c="scons -j2 verbose=yes warnings=all werror=yes platform=javascript target=release_debug debug_symbols=no tools=no use_closure_compiler=yes"
-          echo "${c}" | tee -a out/templates/info.txt
+          echo "${c}" | tee -a "${i}"
           ${c}
-          echo '----' >> out/templates/info.txt
-          ls -alh bin | tee -a out/templates/info.txt
-          echo '----' >> out/templates/info.txt
-          emcc -v 2>> out/templates/info.txt
-          echo '----' >> out/templates/info.txt
-          echo "GITHUB_REF: $GITHUB_REF" | tee -a out/templates/info.txt
-          echo "GITHUB_SHA: $GITHUB_SHA" | tee -a out/templates/info.txt
-
+          echo '----' >> "${i}"
+          ls -alh bin | tee -a "${i}"
+          echo '----' >> "${i}"
+          emcc -v 2>> "${i}"
+          echo '----' >> "${i}"
+          echo "GITHUB_REF: $GITHUB_REF" | tee -a "${i}"
+          echo "GITHUB_SHA: $GITHUB_SHA" | tee -a "${i}"
+          echo "$(git log -1)" | tee -a "${i}"
 
           mv bin/godot.javascript.opt.zip out/templates/webassembly_release.zip
           mv bin/godot.javascript.opt.debug.zip out/templates/webassembly_debug.zip
@@ -110,5 +111,5 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: html5-template
-          path: |
+          path:
             out

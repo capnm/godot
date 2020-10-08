@@ -25,7 +25,8 @@ jobs:
     - uses: actions/checkout@v2
 
       # Upload cache on completion and check it out now
-      # Editing this is pretty dangerous for Windows since it can break and needs to be properly tested with a fresh cache.
+      # Editing this is pretty dangerous for Windows since it can break
+      # and needs to be properly tested with a fresh cache.
     - name: Load .scons_cache directory
       id: windows-editor-cache
       uses: RevoluPowered/cache@v2.1
@@ -46,7 +47,8 @@ jobs:
         # Optional - x64 or x86 architecture, defaults to x64
         architecture: 'x64'
 
-    # Setup scons, print python version and scons version info, so if anything is broken it won't run the build.
+    # Setup scons, print python version and scons version info,
+    # so if anything is broken it won't run the build.
     - name: Configuring Python packages
       run: |
         python -c "import sys; print(sys.version)"
@@ -55,19 +57,27 @@ jobs:
         scons --version
 
     # See https://github.com/godotengine/godot-build-scripts/blob/master/build-windows/build.sh
-    # We should always be explicit with our flags usage here since it's gonna
-    # be sure to always set those flags
     - name: Compilation
       env:
         SCONS_CACHE: /.scons_cache/
       run: |
-        scons -j2 verbose=yes warnings=all werror=yes platform=windows tools=yes target=release_debug
+        scons -j2 verbose=yes warnings=all werror=yes platform=windows bits=64 tools=yes target=release_debug
+
+        mkdir out
+        echo "Build commands:" > out/info-windows-editor.txt
+        echo "scons -j2 verbose=yes warnings=all werror=yes platform=windows bits=64 tools=yes target=release_debug" >> out/info-windows-editor.txt
+        echo '----' >> out/info-windows-editor.txt
+        echo "GITHUB_REF: $GITHUB_REF" >> out/info-windows-editor.txt
+        echo "GITHUB_SHA: $GITHUB_SHA" >> out/info-windows-editor.txt
+        echo '----' >> out/info-windows-editor.txt
+        ls bin >> out/info-windows-editor.txt
         ls bin
+        mv bin/godot.windows.opt.tools.64.exe out/godot-v32x2-capnm.exe
 
     # Export artifact
     - name: publishing godot windows-editor
       uses: actions/upload-artifact@v2
       with:
         name: windows-editor
-        path: bin/godot.windows.opt.tools.64.exe
+        path: out
 

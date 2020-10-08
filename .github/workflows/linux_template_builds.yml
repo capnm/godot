@@ -71,25 +71,28 @@ jobs:
           SCONS_CACHE: ${{github.workspace}}/.scons_cache/
         run: |
           mkdir -p out/templates
-          echo "Build commands:" > out/templates/info.txt
+          i="out/templates/info-linux-template.txt"
+          echo "Build commands:" > "${i}"
 
           c="scons -j2 verbose=yes warnings=all debug_symbols=no use_lto=yes use_static_cpp=yes platform=x11 target=release tools=no"
-          echo "${c}" | tee -a out/templates/info.txt
+          echo "${c}" | tee -a "${i}"
           ${c}
           c="scons -j2 verbose=yes warnings=all debug_symbols=no use_lto=yes use_static_cpp=yes platform=x11 target=release_debug tools=no"
-          echo "${c}" | tee -a out/templates/info.txt
+          echo "${c}" | tee -a "${i}"
           ${c}
 
-          echo '----' >> out/templates/info.txt
-          ls -alh bin | tee -a out/templates/info.txt
-          echo '----' >> out/templates/info.txt
-          gcc --version >> out/templates/info.txt
-          echo '----' >> out/templates/info.txt
-          echo "GITHUB_REF: $GITHUB_REF" | tee -a out/templates/info.txt
-          echo "GITHUB_SHA: $GITHUB_SHA" | tee -a out/templates/info.txt
+          echo '----' >> "${i}"
+          ls -alh bin | tee -a "${i}"
+          echo '----' >> "${i}"
+          gcc --version >> "${i}"
+          echo '----' >> "${i}"
+          echo "GITHUB_REF: $GITHUB_REF" | tee -a "${i}"
+          echo "GITHUB_SHA: $GITHUB_SHA" | tee -a "${i}"
+          echo "$(git log -1)" | tee -a "${i}"
 
           echo "3.2.4.capnm" > out/templates/version.txt
-          mv -v bin/* out/templates/
+          mv -v bin/godot.x11.opt.64       out/templates/linux_x11_64_release
+          mv -v bin/godot.x11.opt.debug.64 out/templates/linux_x11_64_debug
 
       # Export artifact
       - name: Publishing godot linux template

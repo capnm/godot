@@ -68,18 +68,18 @@ jobs:
         mkdir out
         mkdir out/templates
 
-        echo "Build commands:" > out/templates/info.txt
-        echo "scons -j2 verbose=yes warnings=all werror=yes debug_symbols=no use_lto=yes bits=64 platform=windows target=release       tools=no" >> out/templates/info.txt
-        echo "scons -j2 verbose=yes warnings=all werror=yes debug_symbols=no use_lto=yes bits=64 platform=windows target=release_debug tools=no" >> out/templates/info.txt
-        echo '----' >> out/templates/info.txt
-        echo "GITHUB_REF: $GITHUB_REF" >> out/templates/info.txt
-        echo "GITHUB_SHA: $GITHUB_SHA" >> out/templates/info.txt
-        echo '----' >> out/templates/info.txt
+        echo "Build commands:" > out/templates/info-windows-template.txt
+        echo "scons -j2 verbose=yes warnings=all werror=yes debug_symbols=no use_lto=yes bits=64 platform=windows target=release       tools=no" >> out/templates/info-windows-template.txt
+        echo "scons -j2 verbose=yes warnings=all werror=yes debug_symbols=no use_lto=yes bits=64 platform=windows target=release_debug tools=no" >> out/templates/info-windows-template.txt
+        echo '----' >> out/templates/info-windows-template.txt
+        echo "GITHUB_REF: $GITHUB_REF" >> out/templates/info-windows-template.txt
+        echo "GITHUB_SHA: $GITHUB_SHA" >> out/templates/info-windows-template.txt
+        echo '----' >> out/templates/info-windows-template.txt
 
         scons -j2 verbose=yes warnings=all werror=yes debug_symbols=no use_lto=yes bits=64 platform=windows target=release       tools=no
         scons -j2 verbose=yes warnings=all werror=yes debug_symbols=no use_lto=yes bits=64 platform=windows target=release_debug tools=no
         ls bin
-        ls bin >> out/templates/info.txt
+        ls bin >> out/templates/info-windows-template.txt
         mv bin/godot.windows.opt.64.exe       out/templates/windows_64_release.exe
         mv bin/godot.windows.opt.debug.64.exe out/templates/windows_64_debug.exe
         echo "3.2.4.capnm" > out/templates/version.txt
