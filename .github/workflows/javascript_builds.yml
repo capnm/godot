@@ -1,17 +1,22 @@
 name: HTML5 template
-on: [push, pull_request]
+on:
+  workflow_dispatch:
+
+  push:
+    tags:
+      - v3.2-capnm**
 
 # Global Cache Settings
 env:
   GODOT_BASE_BRANCH: 3.2
-  SCONS_CACHE_LIMIT: 4096
+  SCONS_CACHE_LIMIT: 2048
   EM_VERSION: 1.39.20
   EM_CACHE_FOLDER: 'emsdk-cache'
 
 jobs:
   javascript-template:
     runs-on: "ubuntu-20.04"
-    name: Template (target=release, tools=no)
+    name: Template (tools=no)
 
     steps:
       - uses: actions/checkout@v2
@@ -59,8 +64,10 @@ jobs:
           python --version
           scons --version
 
+      # See https://github.com/mymindstorm/setup-emsdk
+      # uses: mymindstorm/setup-emsdk@v6 -> 7
       - name: Set up Emscripten latest
-        uses: mymindstorm/setup-emsdk@v6
+        uses: mymindstorm/setup-emsdk@v7
         with:
           version: ${{env.EM_VERSION}}
           actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
@@ -69,8 +76,39 @@ jobs:
         run: |
           emcc -v
 
+      # See https://github.com/godotengine/godot-build-scripts/blob/master/build-javascript/build.sh
+      # debug_symbols=no ?
       - name: Compilation
         env:
           SCONS_CACHE: ${{github.workspace}}/.scons_cache/
         run: |
-          scons -j2 verbose=yes warnings=all werror=yes platform=javascript target=release tools=no use_closure_compiler=yes
+          mkdir -p out/templates
+          echo "Build commands:" > out/templates/info.txt
+
+          c="scons -j2 verbose=yes warnings=all werror=yes platform=javascript target=release debug_symbols=no tools=no use_closure_compiler=yes"
+          echo "${c}" | tee -a out/templates/info.txt
+          ${c}
+
+          c="scons -j2 verbose=yes warnings=all werror=yes platform=javascript target=release_debug debug_symbols=no tools=no use_closure_compiler=yes"
+          echo "${c}" | tee -a out/templates/info.txt
+          ${c}
+          echo '----' >> out/templates/info.txt
+          ls -alh bin | tee -a out/templates/info.txt
+          echo '----' >> out/templates/info.txt
+          emcc -v 2>> out/templates/info.txt
+          echo '----' >> out/templates/info.txt
+          echo "GITHUB_REF: $GITHUB_REF" | tee -a out/templates/info.txt
+          echo "GITHUB_SHA: $GITHUB_SHA" | tee -a out/templates/info.txt
+
+
+          mv bin/godot.javascript.opt.zip out/templates/webassembly_release.zip
+          mv bin/godot.javascript.opt.debug.zip out/templates/webassembly_debug.zip
+          echo "3.2.4.capnm" > out/templates/version.txt
+
+      # Export artifact
+      - name: Publishing godot HTML5 template
+        uses: actions/upload-artifact@v2
+        with:
+          name: html5-template
+          path: |
+            out

@@ -1,0 +1,93 @@
+name: Windows template
+on:
+  workflow_dispatch:
+
+  push:
+    tags:
+      - v3.2-capnm**
+
+# Global Cache Settings
+# SCONS_CACHE for windows must be set in the build environment
+env:
+  GODOT_BASE_BRANCH: 3.2
+  SCONS_CACHE_MSVC_CONFIG: true
+  SCONS_CACHE_LIMIT: 2048
+
+jobs:
+  windows-template:
+    runs-on: "windows-latest"
+    name: Template (tools=no)
+
+    steps:
+    - uses: actions/checkout@v2
+
+    # Upload cache on completion and check it out now
+    # Editing this is pretty dangerous for Windows since it can break and needs to be properly tested with a fresh cache.
+    - name: Load .scons_cache directory
+      id: windows-template-cache
+      uses: RevoluPowered/cache@v2.1
+      with:
+        path: /.scons_cache/
+        key: ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}-${{github.sha}}
+        restore-keys: |
+          ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}-${{github.sha}}
+          ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}
+          ${{github.job}}-${{env.GODOT_BASE_BRANCH}}
+
+    # Use python 3.x release (works cross platform)
+    - name: Set up Python 3.x
+      uses: actions/setup-python@v2
+      with:
+        # Semantic version range syntax or exact version of a Python version
+        python-version: '3.x'
+        # Optional - x64 or x86 architecture, defaults to x64
+        architecture: 'x64'
+
+    # You can test your matrix by printing the current Python version
+    - name: Configuring Python packages
+      run: |
+        python -c "import sys; print(sys.version)"
+        python -m pip install scons pywin32
+        python --version
+        scons --version
+
+    # See https://github.com/godotengine/godot-build-scripts/blob/master/build-windows/build.sh
+
+    #32292864 godot.windows.opt.64.exe
+    #38167552 godot.windows.opt.debug.64.exe
+
+    #911 godot.windows.opt.64.exp
+    #2194 godot.windows.opt.64.lib
+    #923 godot.windows.opt.debug.64.exp
+    #2278 godot.windows.opt.debug.64.lib
+
+    - name: Compilation
+      env:
+        SCONS_CACHE: /.scons_cache/
+      run: |
+        mkdir out
+        mkdir out/templates
+
+        echo "Build commands:" > out/templates/info.txt
+        echo "scons -j2 verbose=yes warnings=all werror=yes debug_symbols=no use_lto=yes bits=64 platform=windows target=release       tools=no" >> out/templates/info.txt
+        echo "scons -j2 verbose=yes warnings=all werror=yes debug_symbols=no use_lto=yes bits=64 platform=windows target=release_debug tools=no" >> out/templates/info.txt
+        echo '----' >> out/templates/info.txt
+        echo "GITHUB_REF: $GITHUB_REF" >> out/templates/info.txt
+        echo "GITHUB_SHA: $GITHUB_SHA" >> out/templates/info.txt
+        echo '----' >> out/templates/info.txt
+
+        scons -j2 verbose=yes warnings=all werror=yes debug_symbols=no use_lto=yes bits=64 platform=windows target=release       tools=no
+        scons -j2 verbose=yes warnings=all werror=yes debug_symbols=no use_lto=yes bits=64 platform=windows target=release_debug tools=no
+        ls bin
+        ls bin >> out/templates/info.txt
+        mv bin/godot.windows.opt.64.exe       out/templates/windows_64_release.exe
+        mv bin/godot.windows.opt.debug.64.exe out/templates/windows_64_debug.exe
+        echo "3.2.4.capnm" > out/templates/version.txt
+
+
+    # Export artifact
+    - name: publishing godot windows-template
+      uses: actions/upload-artifact@v2
+      with:
+        name: windows-template
+        path: out

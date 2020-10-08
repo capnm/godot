@@ -1,10 +1,15 @@
 name: Android template
-on: [push, pull_request]
+on:
+  workflow_dispatch:
+
+  push:
+    tags:
+      - v3.2-capnm**
 
 # Global Cache Settings
 env:
   GODOT_BASE_BRANCH: 3.2
-  SCONS_CACHE_LIMIT: 4096
+  SCONS_CACHE_LIMIT: 2048
 
 jobs:
   android-template:
@@ -21,20 +26,27 @@ jobs:
           sudo cp -f misc/ci/sources.list /etc/apt/sources.list
           sudo apt-get update
 
-      # Install all packages (except scons)
-      - name: Configure dependencies
+      # The system image has a not working java version:
+      # /usr/lib/jvm/adoptopenjdk-11-hotspot-amd64/bin/java
+      # openjdk version "11.0.8" 2020-07-14
+      # Install the official one.
+      - name: Install and configure dependencies
         run: |
-         sudo apt-get install openjdk-8-jdk
-         echo "::set-env name=JAVA_HOME::usr/lib/jvm/java-8-openjdk-amd64"
+          sudo apt-get install openjdk-8-jdk
+          sudo update-java-alternatives -s java-1.8.0-openjdk-amd64
+          echo "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" >> $GITHUB_ENV
+
+          # Later for scons:
+          echo "ANDROID_HOME=$(pwd)/godot-dev/build-tools/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=$(pwd)/godot-dev/build-tools/android-ndk" >> $GITHUB_ENV
+
 
       - name: Install Android SDK and NDK
         run: |
-          echo "::set-env name=PATH::/usr/lib/jvm/java-8-openjdk-amd64/jre/bin:${PATH}"
+          echo "JAVA_HOME: ${JAVA_home}"
+          echo "java path: $(which java)"
           java -version
-          echo "::set-env name=ANDROID_HOME::$(pwd)/godot-dev/build-tools/android-sdk"
-          echo "::set-env name=ANDROID_NDK_ROOT::$(pwd)/godot-dev/build-tools/android-ndk"
           misc/ci/android-tools-linux.sh
-          source ~/.bashrc
 
       # Upload cache on completion and check it out now
       - name: Load .scons_cache directory
@@ -65,8 +77,55 @@ jobs:
           python --version
           scons --version
 
+      # See https://github.com/godotengine/godot-build-scripts/blob/master/build-android/build.sh
       - name: Compilation
         env:
           SCONS_CACHE: ${{github.workspace}}/.scons_cache/
         run: |
-          scons -j2 verbose=yes warnings=all werror=yes platform=android target=release tools=no
+          mkdir -p out/templates
+          echo "Build commands:" > out/templates/info.txt
+
+          c="scons -j2 verbose=yes platform=android target=release android_arch=armv7"
+          echo "${c}" | tee -a out/templates/info.txt
+          ${c}
+
+          c="scons -j2 verbose=yes platform=android target=release android_arch=arm64v8"
+          echo "${c}" | tee -a out/templates/info.txt
+          ${c}
+
+          c="scons -j2 verbose=yes platform=android target=release_debug android_arch=armv7"
+          echo "${c}" | tee -a out/templates/info.txt
+          ${c}
+
+          c="scons -j2 verbose=yes platform=android target=release_debug android_arch=arm64v8"
+          echo "${c}" | tee -a out/templates/info.txt
+          ${c}
+
+          pushd platform/android/java
+          ./gradlew generateGodotTemplates
+          popd
+
+          echo "path: $(pwd)"
+          ls -al
+          echo '----' >> out/templates/info.txt
+          ls -alh bin | tee -a out/templates/info.txt
+          echo '----' >> out/templates/info.txt
+          java -version 2>> out/templates/info.txt
+          echo '----' >> out/templates/info.txt
+          echo "GITHUB_REF: $GITHUB_REF" | tee -a out/templates/info.txt
+          echo "GITHUB_SHA: $GITHUB_SHA" | tee -a out/templates/info.txt
+          echo "3.2.4.capnm" > out/templates/version.txt
+
+          mv -v bin/android_debug.apk out/templates/
+          mv -v bin/android_release.apk out/templates/
+
+          mv -v bin/godot-lib.debug.aar out/templates/
+          mv -v bin/godot-lib.release.aar out/templates/
+          mv -v bin/android_source.zip out/templates/
+
+      # Export artifact
+      - name: Publishing Godot Android template
+        uses: actions/upload-artifact@v2
+        with:
+          name: android-template
+          path: out
