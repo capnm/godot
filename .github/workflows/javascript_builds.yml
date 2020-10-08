@@ -1,4 +1,4 @@
-name: 🌐 JavaScript Builds
+name: HTML5 template
 on: [push, pull_request]
 
 # Global Cache Settings
