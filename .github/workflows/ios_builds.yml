@@ -1,4 +1,4 @@
-name: 🍏 iOS Builds
+name: iOS template
 on: [push, pull_request]
 
 # Global Cache Settings
