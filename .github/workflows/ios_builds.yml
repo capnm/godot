@@ -1,10 +1,16 @@
 name: iOS template
-on: [push, pull_request]
+on:
+  workflow_dispatch:
+
+#  push:
+#    tags:
+#      - v3.42-capnm**
 
 # Global Cache Settings
 env:
   GODOT_BASE_BRANCH: 3.2
-  SCONS_CACHE_LIMIT: 4096
+  SCONS_CACHE_LIMIT: 1024
+  V: 1
 
 jobs:
   ios-template:
