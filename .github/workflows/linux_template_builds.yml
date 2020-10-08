@@ -87,6 +87,7 @@ jobs:
           echo '----' >> out/templates/info.txt
           echo "GITHUB_REF: $GITHUB_REF" | tee -a out/templates/info.txt
           echo "GITHUB_SHA: $GITHUB_SHA" | tee -a out/templates/info.txt
+          echo "$(git log -1)" | tee -a out/templates/info.txt
 
           echo "3.2.4.capnm" > out/templates/version.txt
           mv -v bin/* out/templates/

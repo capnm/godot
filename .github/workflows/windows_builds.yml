@@ -25,7 +25,8 @@ jobs:
     - uses: actions/checkout@v2
 
       # Upload cache on completion and check it out now
-      # Editing this is pretty dangerous for Windows since it can break and needs to be properly tested with a fresh cache.
+      # Editing this is pretty dangerous for Windows since it can break
+      # and needs to be properly tested with a fresh cache.
     - name: Load .scons_cache directory
       id: windows-editor-cache
       uses: RevoluPowered/cache@v2.1
@@ -46,7 +47,8 @@ jobs:
         # Optional - x64 or x86 architecture, defaults to x64
         architecture: 'x64'
 
-    # Setup scons, print python version and scons version info, so if anything is broken it won't run the build.
+    # Setup scons, print python version and scons version info,
+    # so if anything is broken it won't run the build.
     - name: Configuring Python packages
       run: |
         python -c "import sys; print(sys.version)"
@@ -61,7 +63,7 @@ jobs:
       env:
         SCONS_CACHE: /.scons_cache/
       run: |
-        scons -j2 verbose=yes warnings=all werror=yes platform=windows tools=yes target=release_debug
+        scons -j2 verbose=yes warnings=all werror=yes platform=windows bits=64 tools=yes target=release_debug
         ls bin
 
     # Export artifact

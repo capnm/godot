@@ -64,27 +64,50 @@ jobs:
           pwd
           ls -al
 
+      # See
       # https://docs.godotengine.org/en/stable/development/compiling/compiling_for_x11.html
       # https://github.com/godotengine/godot-build-scripts/blob/master/build-linux/build.sh
-      # We should always be explicit with our flags usage here since it's gonna
-      # be sure to always set those flags
-      # use_static_cpp=yes - Link libgcc and libstdc++ statically for better portability
+
+      # use_static_cpp=yes:  Link libgcc and libstdc++ statically for better portability.
+      # use_lto=yes:  Breaks here the final binary linking (missing symbols).
+      # debug_symbols=no or strip:  ?
+
       - name: Compilation
         env:
           SCONS_CACHE: ${{github.workspace}}/.scons_cache/
         run: |
-          scons use_llvm=yes use_lld=yes use_lto=yes use_static_cpp=yes -j2 verbose=yes warnings=all werror=yes platform=x11 tools=yes target=release_debug  debug_symbols=no no_editor_splash=yes
-          scons use_llvm=yes use_lld=yes use_lto=yes -j2 verbose=yes warnings=all werror=yes platform=x11 tools=yes target=debug separate_debug_symbols=yes no_editor_splash=yes
-          ls -alh bin
-          touch bin/._sc_
-      #mv  godot-v3.2.4-capnm-x11
-      #mv  godot-v3.2.4-capnm-x11-debug
+          mkdir out
+          echo "Build commands:" > out/info.txt
+
+          c="scons use_llvm=yes use_lld=yes use_static_cpp=yes -j2 verbose=yes warnings=all werror=yes platform=x11 tools=yes target=release_debug  debug_symbols=no no_editor_splash=yes"
+          echo "${c}" | tee -a out/info.txt
+          ${c}
+
+          c="scons use_llvm=yes use_lld=yes -j2 verbose=yes warnings=all werror=yes platform=x11 tools=yes target=debug separate_debug_symbols=yes no_editor_splash=yes"
+          echo "${c}" | tee -a out/info.txt
+          ${c}
+
+          ls -al
+          echo '----' >> out/info.txt
+          ls -alh bin | tee -a out/info.txt
+          echo '----' >> out/info.txt
+          clang --version >> out/info.txt
+          echo '----' >> out/info.txt
+          echo "GITHUB_REF: $GITHUB_REF" | tee -a out/info.txt
+          echo "GITHUB_SHA: $GITHUB_SHA" | tee -a out/info.txt
+          echo "$(git log -1)" | tee -a out/info.txt
+
+          echo "3.2.4.capnm" > out/version.txt
+          touch out/._sc_
+
+          mv -v bin/godot.x11.opt.tools.64.llvm out/godot-v32x2-capnm-x11
+          mv -v bin/godot.x11.tools.64.llvm out/godot-v32x2-capnm-debug-x11
+          mv -v bin/*.debugsymbols out/
 
       # Export artifact
       - name: Publishing godot linux editor
         uses: actions/upload-artifact@v2
         with:
           name: linux-editor
-          path: |
-            bin/*
-            bin/._sc_
+          path:
+            out
