@@ -2885,11 +2885,11 @@ void register_android_exporter() {
 		exe_ext = "*.exe";
 	}
 
-	EDITOR_DEF("export/android/adb", "");
+	EDITOR_DEF("export/android/adb", "/usr/bin/adb");
 	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::STRING, "export/android/adb", PROPERTY_HINT_GLOBAL_FILE, exe_ext));
-	EDITOR_DEF("export/android/jarsigner", "");
+	EDITOR_DEF("export/android/jarsigner", "/usr/bin/jarsigner");
 	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::STRING, "export/android/jarsigner", PROPERTY_HINT_GLOBAL_FILE, exe_ext));
-	EDITOR_DEF("export/android/debug_keystore", "");
+	EDITOR_DEF("export/android/debug_keystore", "/opt/android-keystore/debug.keystore");
 	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::STRING, "export/android/debug_keystore", PROPERTY_HINT_GLOBAL_FILE, "*.keystore"));
 	EDITOR_DEF("export/android/debug_keystore_user", "androiddebugkey");
 	EDITOR_DEF("export/android/debug_keystore_pass", "android");

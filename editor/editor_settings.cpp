@@ -267,7 +267,10 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	{
 		String lang_hint = "en";
 		String host_lang = OS::get_singleton()->get_locale();
-		host_lang = TranslationServer::standardize_locale(host_lang);
+
+		//host_lang = TranslationServer::standardize_locale(host_lang);
+		// Default to en.
+		host_lang = "en";
 
 		// Some locales are not properly supported currently in Godot due to lack of font shaping
 		// (e.g. Arabic or Hindi), so even though we have work in progress translations for them,
@@ -333,7 +336,7 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	hints["interface/editor/main_font_bold"] = PropertyInfo(Variant::STRING, "interface/editor/main_font_bold", PROPERTY_HINT_GLOBAL_FILE, "*.ttf,*.otf", PROPERTY_USAGE_DEFAULT);
 	_initial_set("interface/editor/code_font", "");
 	hints["interface/editor/code_font"] = PropertyInfo(Variant::STRING, "interface/editor/code_font", PROPERTY_HINT_GLOBAL_FILE, "*.ttf,*.otf", PROPERTY_USAGE_DEFAULT);
-	_initial_set("interface/editor/dim_editor_on_dialog_popup", true);
+	_initial_set("interface/editor/dim_editor_on_dialog_popup", false);
 	_initial_set("interface/editor/low_processor_mode_sleep_usec", 6900); // ~144 FPS
 	hints["interface/editor/low_processor_mode_sleep_usec"] = PropertyInfo(Variant::REAL, "interface/editor/low_processor_mode_sleep_usec", PROPERTY_HINT_RANGE, "1,100000,1", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
 	_initial_set("interface/editor/unfocused_low_processor_mode_sleep_usec", 50000); // 20 FPS
@@ -342,7 +345,7 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	_initial_set("interface/editor/automatically_open_screenshots", true);
 	_initial_set("interface/editor/hide_console_window", false);
 	_initial_set("interface/editor/save_each_scene_on_quit", true); // Regression
-	_initial_set("interface/editor/quit_confirmation", true);
+	_initial_set("interface/editor/quit_confirmation", false);
 
 	// Theme
 	_initial_set("interface/theme/preset", "Default");
@@ -358,7 +361,7 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	_initial_set("interface/theme/relationship_line_opacity", 0.1);
 	hints["interface/theme/relationship_line_opacity"] = PropertyInfo(Variant::REAL, "interface/theme/relationship_line_opacity", PROPERTY_HINT_RANGE, "0.00, 1, 0.01");
 	_initial_set("interface/theme/highlight_tabs", false);
-	_initial_set("interface/theme/border_size", 1);
+	_initial_set("interface/theme/border_size", 0);
 	_initial_set("interface/theme/use_graph_node_headers", false);
 	hints["interface/theme/border_size"] = PropertyInfo(Variant::INT, "interface/theme/border_size", PROPERTY_HINT_RANGE, "0,2,1", PROPERTY_USAGE_DEFAULT);
 	_initial_set("interface/theme/additional_spacing", 0);
@@ -368,7 +371,7 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 
 	// Scene tabs
 	_initial_set("interface/scene_tabs/show_extension", false);
-	_initial_set("interface/scene_tabs/show_thumbnail_on_hover", true);
+	_initial_set("interface/scene_tabs/show_thumbnail_on_hover", false);
 	_initial_set("interface/scene_tabs/resize_if_many_tabs", true);
 	_initial_set("interface/scene_tabs/minimum_width", 50);
 	hints["interface/scene_tabs/minimum_width"] = PropertyInfo(Variant::INT, "interface/scene_tabs/minimum_width", PROPERTY_HINT_RANGE, "50,500,1", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
@@ -434,7 +437,7 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	// Indent
 	_initial_set("text_editor/indent/type", 0);
 	hints["text_editor/indent/type"] = PropertyInfo(Variant::INT, "text_editor/indent/type", PROPERTY_HINT_ENUM, "Tabs,Spaces");
-	_initial_set("text_editor/indent/size", 4);
+	_initial_set("text_editor/indent/size", 8);
 	hints["text_editor/indent/size"] = PropertyInfo(Variant::INT, "text_editor/indent/size", PROPERTY_HINT_RANGE, "1, 64, 1"); // size of 0 crashes.
 	_initial_set("text_editor/indent/auto_indent", true);
 	_initial_set("text_editor/indent/convert_indent_on_save", true);
@@ -442,9 +445,9 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	_initial_set("text_editor/indent/draw_spaces", false);
 
 	// Navigation
-	_initial_set("text_editor/navigation/smooth_scrolling", true);
+	_initial_set("text_editor/navigation/smooth_scrolling", false);
 	_initial_set("text_editor/navigation/v_scroll_speed", 80);
-	_initial_set("text_editor/navigation/show_minimap", true);
+	_initial_set("text_editor/navigation/show_minimap", false);
 	_initial_set("text_editor/navigation/minimap_width", 80);
 	hints["text_editor/navigation/minimap_width"] = PropertyInfo(Variant::INT, "text_editor/navigation/minimap_width", PROPERTY_HINT_RANGE, "50,250,1");
 
@@ -454,8 +457,8 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	_initial_set("text_editor/appearance/show_bookmark_gutter", true);
 	_initial_set("text_editor/appearance/show_breakpoint_gutter", true);
 	_initial_set("text_editor/appearance/show_info_gutter", true);
-	_initial_set("text_editor/appearance/code_folding", true);
-	_initial_set("text_editor/appearance/word_wrap", false);
+	_initial_set("text_editor/appearance/code_folding", false);
+	_initial_set("text_editor/appearance/word_wrap", true);
 	_initial_set("text_editor/appearance/show_line_length_guideline", true);
 	_initial_set("text_editor/appearance/line_length_guideline_column", 80);
 	hints["text_editor/appearance/line_length_guideline_column"] = PropertyInfo(Variant::INT, "text_editor/appearance/line_length_guideline_column", PROPERTY_HINT_RANGE, "20, 160, 1");
@@ -464,7 +467,7 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	_initial_set("text_editor/script_list/show_members_overview", true);
 
 	// Files
-	_initial_set("text_editor/files/trim_trailing_whitespace_on_save", false);
+	_initial_set("text_editor/files/trim_trailing_whitespace_on_save", true);
 	_initial_set("text_editor/files/autosave_interval_secs", 0);
 	_initial_set("text_editor/files/restore_scripts_on_load", true);
 
@@ -473,7 +476,7 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	_initial_set("text_editor/tools/sort_members_outline_alphabetically", false);
 
 	// Cursor
-	_initial_set("text_editor/cursor/scroll_past_end_of_file", false);
+	_initial_set("text_editor/cursor/scroll_past_end_of_file", true);
 	_initial_set("text_editor/cursor/block_caret", false);
 	_initial_set("text_editor/cursor/caret_blink", true);
 	_initial_set("text_editor/cursor/caret_blink_speed", 0.5);
@@ -483,7 +486,7 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	// Completion
 	_initial_set("text_editor/completion/idle_parse_delay", 2.0);
 	hints["text_editor/completion/idle_parse_delay"] = PropertyInfo(Variant::REAL, "text_editor/completion/idle_parse_delay", PROPERTY_HINT_RANGE, "0.1, 10, 0.01");
-	_initial_set("text_editor/completion/auto_brace_complete", true);
+	_initial_set("text_editor/completion/auto_brace_complete", false);
 	_initial_set("text_editor/completion/code_complete_delay", 0.3);
 	hints["text_editor/completion/code_complete_delay"] = PropertyInfo(Variant::REAL, "text_editor/completion/code_complete_delay", PROPERTY_HINT_RANGE, "0.01, 5, 0.01");
 	_initial_set("text_editor/completion/put_callhint_tooltip_below_current_line", true);
@@ -614,7 +617,7 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	hints["run/output/font_size"] = PropertyInfo(Variant::INT, "run/output/font_size", PROPERTY_HINT_RANGE, "8,48,1");
 	_initial_set("run/output/always_clear_output_on_play", true);
 	_initial_set("run/output/always_open_output_on_play", true);
-	_initial_set("run/output/always_close_output_on_stop", false);
+	_initial_set("run/output/always_close_output_on_stop", true);
 
 	/* Network */
 
