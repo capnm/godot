@@ -2095,8 +2095,53 @@ bool ScriptEditor::edit(const RES &p_resource, int p_line, int p_col, bool p_gra
 			(debugger->get_dump_stack_script() != p_resource || debugger->get_debug_with_external_editor()) &&
 			p_resource->get_path().is_resource_file() &&
 			p_resource->get_class_name() != StringName("VisualScript")) {
-		String path = EditorSettings::get_singleton()->get("text_editor/external/exec_path");
-		String flags = EditorSettings::get_singleton()->get("text_editor/external/exec_flags");
+		int exec_preset = EditorSettings::get_singleton()->get("text_editor/external/exec_preset");
+		String path;
+		String flags;
+
+		switch (exec_preset) {
+			case 0: {
+				flags = EditorSettings::get_singleton()->get("text_editor/external/exec_flags");
+			} break;
+			case 1: {
+				path = "atom";
+				flags = "{file}:{line}:{col}";
+			} break;
+			case 2: {
+				path = "geany";
+				flags = "{file} --line {line} --column {col}";
+			} break;
+			case 3: {
+				path = "rider";
+				flags = "--line {line} --column {col} {file}";
+			} break;
+			case 4: {
+				path = "kate";
+				flags = "--line {line} --column {col} {file}";
+			} break;
+			case 5: {
+				path = "subl";
+				flags = "--project {project} {file}:{line}:{col}";
+			} break;
+			case 6: {
+				path = "vim";
+				flags = "\"+call cursor({line}, {col})\" {file}";
+			} break;
+			case 7: {
+				path = "codium";
+				flags = "{project} --goto {file}:{line}:{col}";
+			} break;
+			case 8: {
+				path = "code";
+				flags = "{project} --goto {file}:{line}:{col}";
+			} break;
+		}
+
+		// If available, always use the exec_path set by the user to allow using presets with a custom path
+		String user_exec_path = EditorSettings::get_singleton()->get("text_editor/external/exec_path");
+		if (!user_exec_path.empty()) {
+			path = user_exec_path;
+		}
 
 		List<String> args;
 		bool has_file_flag = false;
@@ -3642,21 +3687,30 @@ ScriptEditorPlugin::ScriptEditorPlugin(EditorNode *p_node) {
 	EDITOR_DEF("text_editor/files/auto_reload_scripts_on_external_change", true);
 	ScriptServer::set_reload_scripts_on_save(EDITOR_DEF("text_editor/files/auto_reload_and_parse_scripts_on_save", true));
 	EDITOR_DEF("text_editor/files/open_dominant_script_on_scene_change", true);
+
 	EDITOR_DEF("text_editor/external/use_external_editor", false);
-	EDITOR_DEF("text_editor/external/exec_path", "");
-	EDITOR_DEF("text_editor/script_list/script_temperature_enabled", true);
+	EDITOR_DEF("text_editor/external/exec_preset", 7);
+	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::INT, "text_editor/external/exec_preset",
+			PROPERTY_HINT_ENUM, "Custom,Atom,Geany,JetBrains Rider,Kate,Sublime Text,Vim,VSCodium,Visual Studio Code",
+			PROPERTY_USAGE_DEFAULT));
+
+	EDITOR_DEF("text_editor/external/exec_path", "code");
+	EDITOR_DEF("text_editor/external/exec_flags", "{project} --goto {file}:{line}:{col}");
+
+	EDITOR_DEF("text_editor/script_list/script_temperature_enabled", false);
 	EDITOR_DEF("text_editor/script_list/highlight_current_script", true);
 	EDITOR_DEF("text_editor/script_list/script_temperature_history_size", 15);
 	EDITOR_DEF("text_editor/script_list/current_script_background_color", Color(1, 1, 1, 0.3));
 	EDITOR_DEF("text_editor/script_list/group_help_pages", true);
-	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::INT, "text_editor/script_list/sort_scripts_by", PROPERTY_HINT_ENUM, "Name,Path,None"));
+	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::INT, "text_editor/script_list/sort_scripts_by",
+			PROPERTY_HINT_ENUM, "Name,Path,None"));
 	EDITOR_DEF("text_editor/script_list/sort_scripts_by", 0);
-	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::INT, "text_editor/script_list/list_script_names_as", PROPERTY_HINT_ENUM, "Name,Parent Directory And Name,Full Path"));
+	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::INT, "text_editor/script_list/list_script_names_as",
+			PROPERTY_HINT_ENUM, "Name,Parent Directory And Name,Full Path"));
 	EDITOR_DEF("text_editor/script_list/list_script_names_as", 0);
 	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::STRING, "text_editor/external/exec_path", PROPERTY_HINT_GLOBAL_FILE));
-	EDITOR_DEF("text_editor/external/exec_flags", "{file}");
-	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::STRING, "text_editor/external/exec_flags", PROPERTY_HINT_PLACEHOLDER_TEXT, "Call flags with placeholders: {project}, {file}, {col}, {line}."));
-
+	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::STRING, "text_editor/external/exec_flags",
+			PROPERTY_HINT_PLACEHOLDER_TEXT, "Call flags with placeholders: {project}, {file}, {col}, {line}."));
 	ED_SHORTCUT("script_editor/reopen_closed_script", TTR("Reopen Closed Script"), KEY_MASK_CMD | KEY_MASK_SHIFT | KEY_T);
 	ED_SHORTCUT("script_editor/clear_recent", TTR("Clear Recent Scripts"));
 }
