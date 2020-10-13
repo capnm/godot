@@ -44,9 +44,6 @@ class PhysicsBody : public CollisionObject {
 	uint32_t collision_layer;
 	uint32_t collision_mask;
 
-	void _set_layers(uint32_t p_mask);
-	uint32_t _get_layers() const;
-
 protected:
 	static void _bind_methods();
 	void _notification(int p_what);
