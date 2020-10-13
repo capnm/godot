@@ -477,16 +477,19 @@ int Space2DSW::_cull_aabb_for_body(Body2DSW *p_body, const Rect2 &p_aabb) {
 
 		bool keep = true;
 
-		if (intersection_query_results[i] == p_body)
+		if (intersection_query_results[i] == p_body) {
 			keep = false;
-		else if (intersection_query_results[i]->get_type() == CollisionObject2DSW::TYPE_AREA)
+		} else if (intersection_query_results[i]->get_type() == CollisionObject2DSW::TYPE_AREA) {
 			keep = false;
-		else if ((static_cast<Body2DSW *>(intersection_query_results[i])->test_collision_mask(p_body)) == 0)
+		} else if (!(static_cast<Body2DSW *>(intersection_query_results[i])->interacts_with(p_body))) {
 			keep = false;
-		else if (static_cast<Body2DSW *>(intersection_query_results[i])->has_exception(p_body->get_self()) || p_body->has_exception(intersection_query_results[i]->get_self()))
+		} else if (static_cast<Body2DSW *>(intersection_query_results[i])->has_exception(p_body->get_self()) ||
+				   p_body->has_exception(intersection_query_results[i]->get_self())) {
 			keep = false;
-		else if (static_cast<Body2DSW *>(intersection_query_results[i])->is_shape_set_as_disabled(intersection_query_subindex_results[i]))
+		} else if (static_cast<Body2DSW *>(intersection_query_results[i])
+						   ->is_shape_set_as_disabled(intersection_query_subindex_results[i])) {
 			keep = false;
+		}
 
 		if (!keep) {
 
@@ -1123,7 +1126,7 @@ bool Space2DSW::test_body_motion(Body2DSW *p_body, const Transform2D &p_from, co
 }
 
 void *Space2DSW::_broadphase_pair(CollisionObject2DSW *A, int p_subindex_A, CollisionObject2DSW *B, int p_subindex_B, void *p_self) {
-	if (!A->test_collision_mask(B)) {
+	if (!A->interacts_with(B)) {
 		return nullptr;
 	}
 
