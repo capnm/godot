@@ -1903,6 +1903,9 @@ Variant FileSystemDock::get_drag_data_fw(const Point2 &p_point, Control *p_from)
 bool FileSystemDock::can_drop_data_fw(const Point2 &p_point, const Variant &p_data, Control *p_from) const {
 	Dictionary drag_data = p_data;
 
+	// Disable, too dangerous. This can by acident destroy your project.
+	return false;
+
 	if (drag_data.has("favorite")) {
 
 		if (String(drag_data["favorite"]) != "all") {
