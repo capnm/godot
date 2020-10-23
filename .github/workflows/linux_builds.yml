@@ -23,6 +23,7 @@ jobs:
       # Azure repositories are not reliable, we need to prevent azure giving us packages.
       - name: Make apt sources.list use the default Ubuntu repositories
         run: |
+          sudo rm -f /etc/apt/sources.list.d/*
           sudo cp -f misc/ci/sources.list /etc/apt/sources.list
           sudo apt-get update
 
@@ -44,8 +45,8 @@ jobs:
             ${{github.job}}-${{env.GODOT_BASE_BRANCH}}-${{github.ref}}
             ${{github.job}}-${{env.GODOT_BASE_BRANCH}}
 
-      # Use python 3.x release (works cross platform; best to keep self contained
-      # in it's own step)
+      # Use python 3.x release
+      # (works cross platform; best to keep self contained in it's own step).
       - name: Set up Python 3.x
         uses: actions/setup-python@v2
         with:
@@ -105,8 +106,7 @@ jobs:
           mv -v bin/*.debugsymbols out/
 
       # Export artifact
-      - name: Publishing godot linux editor
-        uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v2
         with:
           name: linux-editor
           path:

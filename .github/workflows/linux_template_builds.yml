@@ -6,7 +6,7 @@ on:
     tags:
       - v3.42-capnm**
 
-# Global Cache Settings
+# Global settings.
 env:
   GODOT_BASE_BRANCH: 3.2
   SCONS_CACHE_LIMIT: 2048
@@ -24,6 +24,7 @@ jobs:
       # Azure repositories are not reliable, we need to prevent azure giving us packages.
       - name: Make apt sources.list use the default Ubuntu repositories
         run: |
+          sudo rm -f /etc/apt/sources.list.d/*
           sudo cp -f misc/ci/sources.list /etc/apt/sources.list
           sudo apt-get update
 
@@ -96,8 +97,7 @@ jobs:
           mv -v bin/godot.x11.opt.debug.64 out/templates/linux_x11_64_debug
 
       # Export artifact
-      - name: Publishing godot linux template
-        uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v2
         with:
           name: linux-template
           path: out
