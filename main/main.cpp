@@ -979,7 +979,7 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	// accessed easily on mobile/Web platforms (if at all).
 	// This also prevents logs from being created for the editor instance, as feature tags
 	// are disabled while in the editor (even if they should logically apply).
-	GLOBAL_DEF("logging/file_logging/enable_file_logging.pc", true);
+	GLOBAL_DEF("logging/file_logging/enable_file_logging.pc", false);
 	GLOBAL_DEF("logging/file_logging/log_path", "user://logs/godot.log");
 	GLOBAL_DEF("logging/file_logging/max_log_files", 5);
 	ProjectSettings::get_singleton()->set_custom_property_info("logging/file_logging/max_log_files", PropertyInfo(Variant::INT, "logging/file_logging/max_log_files", PROPERTY_HINT_RANGE, "0,20,1,or_greater")); //no negative numbers
