@@ -353,16 +353,13 @@ Error OS_Unix::execute(const String &p_path, const List<String> &p_arguments, bo
 	}
 
 	if (p_blocking) {
-
 		int status;
 		waitpid(pid, &status, 0);
-		if (r_exitcode)
-			*r_exitcode = WEXITSTATUS(status);
-
-	} else {
-
-		if (r_child_id)
-			*r_child_id = pid;
+		if (r_exitcode) {
+			*r_exitcode = WIFEXITED(status) ? WEXITSTATUS(status) : status;
+		}
+	} else if (r_child_id) {
+		*r_child_id = pid;
 	}
 
 	return OK;
