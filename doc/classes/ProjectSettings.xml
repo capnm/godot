@@ -822,7 +822,7 @@
 		<member name="logging/file_logging/enable_file_logging" type="bool" setter="" getter="" default="false">
 			If [code]true[/code], logs all output to files.
 		</member>
-		<member name="logging/file_logging/enable_file_logging.pc" type="bool" setter="" getter="" default="true">
+		<member name="logging/file_logging/enable_file_logging.pc" type="bool" setter="" getter="" default="false">
 		</member>
 		<member name="logging/file_logging/log_path" type="String" setter="" getter="" default="&quot;user://logs/godot.log&quot;">
 			Path to logs within the project. Using an [code]user://[/code] path is recommended.
